@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    # macOS 15 is not incidental: it is the package's declared floor, and the
+    # point of testing there is to catch an API newer than the floor allows.
+    # Building only on the newest runner would let a macOS 26 symbol through and
+    # break the one consuming app that still targets 15.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show toolchain
+        run: swift --version
+      - name: Build
+        run: swift build -v
+      - name: Test
+        run: swift test -v
