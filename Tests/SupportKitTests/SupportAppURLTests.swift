@@ -160,11 +160,16 @@ struct IssueURLTests {
 
 @Suite("mailto URL")
 struct MailtoURLTests {
+    /// Asserted on `absoluteString`, not on `url.path`.
+    ///
+    /// `URLComponents` gives `mailto:` a path on macOS 26 and an empty one on
+    /// macOS 15, so `path` is not a stable thing to assert. What actually gets
+    /// handed to LaunchServices is the whole string.
     @Test("addresses the support mailbox")
     func addressesSupport() {
         let url = silhouette.mailtoURL(kind: .bug, diagnostics: fixture)!
         #expect(url.scheme == "mailto")
-        #expect(url.path == "support@mgcrea.io")
+        #expect(url.absoluteString.hasPrefix("mailto:support@mgcrea.io?"))
     }
 
     /// The trap this whole method exists to avoid. In a `mailto:` URL `+` is a

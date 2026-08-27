@@ -48,13 +48,15 @@ struct DiagnosticsTests {
         #expect(hw == "iPhone17,1")
     }
 
+    /// No prefix assertion: model identifiers do not share one. CI runs on
+    /// `VirtualMac2,1`, and real hardware includes `iMac21,1` — neither starts
+    /// with "Mac". The contract is only that a real identifier came back.
     @Test("ignores an empty simulator variable rather than reporting nothing")
     func emptySimulatorVariable() {
         let hw = Diagnostics.hardwareIdentifier(environment: ["SIMULATOR_MODEL_IDENTIFIER": ""])
-        #expect(hw != "")
-        #if os(macOS)
-            #expect(hw.hasPrefix("Mac"))
-        #endif
+        #expect(!hw.isEmpty)
+        #expect(hw != "unknown")
+        #expect(hw.contains(","))
     }
 
     @Test("reads a real model identifier off this machine")

@@ -98,14 +98,27 @@ extension SupportApp {
     /// `URLComponents` percent-encodes a space as `%20`, which is right for both,
     /// so the body is built through it rather than by string concatenation.
     public func mailtoURL(kind: FeedbackKind, diagnostics: Diagnostics = .current) -> URL? {
-        var components = URLComponents()
-        components.scheme = "mailto"
-        components.path = supportEmail
-        components.queryItems = [
+        // `URLComponents` is used for the query **only**, and the `mailto:` head
+        // is assembled by hand. Setting `.scheme` and `.path` and reading `.url`
+        // back does work — on a new enough OS. macOS 15 still resolves this
+        // through the older CFURL implementation, where the same components give
+        // an empty `path`, and CI on the package's own deployment floor is what
+        // caught it. A support link that silently degrades on the oldest OS a
+        // consuming app supports is precisely the bug this package must not have,
+        // so the output is made independent of which implementation is present.
+        var query = URLComponents()
+        query.queryItems = [
             URLQueryItem(name: "subject", value: "[\(slug)] \(kind.rawValue)"),
             URLQueryItem(name: "body", value: mailBody(diagnostics: diagnostics)),
         ]
-        return components.url
+        guard let encodedQuery = query.percentEncodedQuery else { return nil }
+        // The address is percent-encoded too: `urlPathAllowed` keeps `@` and `.`
+        // intact, which is what a mailbox needs, while a stray space or unicode
+        // in a misconfigured address cannot produce an unparseable URL.
+        guard
+            let address = supportEmail.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
+        else { return nil }
+        return URL(string: "mailto:\(address)?\(encodedQuery)")
     }
 }
 
