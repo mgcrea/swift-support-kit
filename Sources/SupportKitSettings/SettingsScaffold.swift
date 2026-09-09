@@ -188,20 +188,33 @@ public struct SettingsScaffold<Pane: SettingsPane, Detail: View>: View {
     }
   }
 
-  private func rows(in group: SettingsPaneGroup, pushes: Bool) -> some View {
-    ForEach(Pane.panes(in: group)) { pane in
-      Group {
-        if pushes {
-          NavigationLink(value: pane) {
-            Label(pane.title, systemImage: pane.systemImage)
-          }
-        } else {
+  /// The two branches are written out rather than sharing a `Group`, and that is
+  /// not a style choice.
+  ///
+  /// `.tag` sets a view *trait*, and `List` reads traits from the row view it is
+  /// handed — not from a descendant. Set inside a `Group` that is then modified,
+  /// the tag belongs to the `Label` and the row exposes nothing, so the sidebar
+  /// draws correctly, highlights correctly, and selects nothing at all. What
+  /// makes it hard to spot is that `Group` *does* forward the modifiers applied
+  /// to it down to each child, so `.accessibilityIdentifier` lands exactly where
+  /// it should and the accessibility tree looks right while the window is inert.
+  /// `.tag` has to be the outermost modifier on the row.
+  @ViewBuilder private func rows(in group: SettingsPaneGroup, pushes: Bool) -> some View {
+    if pushes {
+      ForEach(Pane.panes(in: group)) { pane in
+        NavigationLink(value: pane) {
           Label(pane.title, systemImage: pane.systemImage)
-            .tag(pane)
         }
+        .badge(pane.badge)
+        .accessibilityIdentifier("settings.pane.\(pane.rawValue)")
       }
-      .badge(pane.badge)
-      .accessibilityIdentifier("settings.pane.\(pane.rawValue)")
+    } else {
+      ForEach(Pane.panes(in: group)) { pane in
+        Label(pane.title, systemImage: pane.systemImage)
+          .badge(pane.badge)
+          .accessibilityIdentifier("settings.pane.\(pane.rawValue)")
+          .tag(pane)
+      }
     }
   }
 
