@@ -29,56 +29,56 @@ import Testing
 // sitting**, and bump `contractVersion` if the shape changed rather than the
 // example.
 enum ContractGolden {
-    /// Emitted by `feedbackURL` for `fixture` below. Byte-identical to the
-    /// literal asserted in the contract package's TypeScript test.
-    static let url =
-        "https://silhouette.mgcrea.io/feedback/?v=1&app=silhouette&kind=bug"
-        + "&av=1.4%20(168)&os=macOS%2026.4&hw=Mac16,10&lang=en"
+  /// Emitted by `feedbackURL` for `fixture` below. Byte-identical to the
+  /// literal asserted in the contract package's TypeScript test.
+  static let url =
+    "https://silhouette.mgcrea.io/feedback/?v=1&app=silhouette&kind=bug"
+    + "&av=1.4%20(168)&os=macOS%2026.4&hw=Mac16,10&lang=en"
 
-    static let diagnostics = Diagnostics(
-        appVersion: "1.4 (168)",
-        osVersion: "macOS 26.4",
-        hardware: "Mac16,10",
-        language: "en"
-    )
+  static let diagnostics = Diagnostics(
+    appVersion: "1.4 (168)",
+    osVersion: "macOS 26.4",
+    hardware: "Mac16,10",
+    language: "en"
+  )
 
-    static let app = SupportApp(
-        slug: "silhouette",
-        displayName: "Silhouette",
-        siteURL: URL(string: "https://silhouette.mgcrea.io")!
-    )
+  static let app = SupportApp(
+    slug: "silhouette",
+    displayName: "Silhouette",
+    siteURL: URL(string: "https://silhouette.mgcrea.io")!
+  )
 }
 
 @Suite("Cross-language contract")
 struct ContractGoldenTests {
-    /// The whole point: not "the parameters are present" but "the string is
-    /// exactly this". Parameter order is part of it, because the assertion on
-    /// the other side is a string too.
-    @Test("emits the golden URL byte for byte")
-    func emitsGoldenURL() {
-        let url = ContractGolden.app.feedbackURL(
-            kind: .bug, diagnostics: ContractGolden.diagnostics)
-        #expect(url.absoluteString == ContractGolden.url)
-    }
+  /// The whole point: not "the parameters are present" but "the string is
+  /// exactly this". Parameter order is part of it, because the assertion on
+  /// the other side is a string too.
+  @Test("emits the golden URL byte for byte")
+  func emitsGoldenURL() {
+    let url = ContractGolden.app.feedbackURL(
+      kind: .bug, diagnostics: ContractGolden.diagnostics)
+    #expect(url.absoluteString == ContractGolden.url)
+  }
 
-    /// A guard on the encoding rules the other side depends on, stated
-    /// separately so a failure says *which* rule broke rather than just
-    /// "the string differs".
-    @Test("encodes spaces as %20 and leaves the model's comma alone")
-    func encodingRules() {
-        let url = ContractGolden.app.feedbackURL(
-            kind: .bug, diagnostics: ContractGolden.diagnostics
-        ).absoluteString
-        #expect(url.contains("av=1.4%20(168)"))
-        #expect(url.contains("hw=Mac16,10"))
-        #expect(!url.contains("+"))
-    }
+  /// A guard on the encoding rules the other side depends on, stated
+  /// separately so a failure says *which* rule broke rather than just
+  /// "the string differs".
+  @Test("encodes spaces as %20 and leaves the model's comma alone")
+  func encodingRules() {
+    let url = ContractGolden.app.feedbackURL(
+      kind: .bug, diagnostics: ContractGolden.diagnostics
+    ).absoluteString
+    #expect(url.contains("av=1.4%20(168)"))
+    #expect(url.contains("hw=Mac16,10"))
+    #expect(!url.contains("+"))
+  }
 
-    /// The version travels as a bare integer. The receiving page compares it
-    /// against its own constant, so a change in either type — say quoting it —
-    /// would make every submission look like it came from an unknown version.
-    @Test("sends the contract version as a bare integer")
-    func versionIsBare() {
-        #expect(ContractGolden.url.contains("?v=\(SupportApp.contractVersion)&"))
-    }
+  /// The version travels as a bare integer. The receiving page compares it
+  /// against its own constant, so a change in either type — say quoting it —
+  /// would make every submission look like it came from an unknown version.
+  @Test("sends the contract version as a bare integer")
+  func versionIsBare() {
+    #expect(ContractGolden.url.contains("?v=\(SupportApp.contractVersion)&"))
+  }
 }

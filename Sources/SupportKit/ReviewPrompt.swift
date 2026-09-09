@@ -37,77 +37,77 @@ import Foundation
 /// ```
 @MainActor
 public final class ReviewPrompt {
-    /// Namespaces the `UserDefaults` keys. Use the app's slug.
-    private let keyPrefix: String
-    /// Successful outcomes before the first ask.
-    ///
-    /// Three rather than one: a single success proves the app ran, not that it
-    /// was useful enough to come back to.
-    private let threshold: Int
-    private let defaults: UserDefaults
-    private let currentVersion: () -> String
+  /// Namespaces the `UserDefaults` keys. Use the app's slug.
+  private let keyPrefix: String
+  /// Successful outcomes before the first ask.
+  ///
+  /// Three rather than one: a single success proves the app ran, not that it
+  /// was useful enough to come back to.
+  private let threshold: Int
+  private let defaults: UserDefaults
+  private let currentVersion: () -> String
 
-    /// Set for the rest of the process once a paywall is shown.
-    ///
-    /// Deliberately **not** persisted: the suppression is about this sitting, not
-    /// a permanent black mark against someone who once looked at the price.
-    private var paywallSeenThisSession = false
+  /// Set for the rest of the process once a paywall is shown.
+  ///
+  /// Deliberately **not** persisted: the suppression is about this sitting, not
+  /// a permanent black mark against someone who once looked at the price.
+  private var paywallSeenThisSession = false
 
-    public init(
-        keyPrefix: String,
-        threshold: Int = 3,
-        defaults: UserDefaults = .standard,
-        currentVersion: @escaping () -> String = { ReviewPrompt.shortVersion() }
-    ) {
-        self.keyPrefix = keyPrefix
-        self.threshold = threshold
-        self.defaults = defaults
-        self.currentVersion = currentVersion
-    }
+  public init(
+    keyPrefix: String,
+    threshold: Int = 3,
+    defaults: UserDefaults = .standard,
+    currentVersion: @escaping () -> String = { ReviewPrompt.shortVersion() }
+  ) {
+    self.keyPrefix = keyPrefix
+    self.threshold = threshold
+    self.defaults = defaults
+    self.currentVersion = currentVersion
+  }
 
-    private var milestoneKey: String { "\(keyPrefix).review.milestones" }
-    private var askedVersionKey: String { "\(keyPrefix).review.askedForVersion" }
+  private var milestoneKey: String { "\(keyPrefix).review.milestones" }
+  private var askedVersionKey: String { "\(keyPrefix).review.askedForVersion" }
 
-    /// Call when a paywall, upgrade sheet or price is shown.
-    public func notePaywallShown() {
-        paywallSeenThisSession = true
-    }
+  /// Call when a paywall, upgrade sheet or price is shown.
+  public func notePaywallShown() {
+    paywallSeenThisSession = true
+  }
 
-    /// Records one successful outcome and reports whether this is the moment to ask.
-    ///
-    /// Counts every milestone but asks at most once per app version, so someone
-    /// who exports daily is not re-asked after each success — only after an
-    /// update that changed the version they were last asked on.
-    ///
-    /// The counter is incremented **before** the guards, on purpose: a user who
-    /// meets the paywall on their third success should be asked on their fourth,
-    /// not have the third not count.
-    public func recordMilestoneAndShouldAsk() -> Bool {
-        let count = defaults.integer(forKey: milestoneKey) + 1
-        defaults.set(count, forKey: milestoneKey)
+  /// Records one successful outcome and reports whether this is the moment to ask.
+  ///
+  /// Counts every milestone but asks at most once per app version, so someone
+  /// who exports daily is not re-asked after each success — only after an
+  /// update that changed the version they were last asked on.
+  ///
+  /// The counter is incremented **before** the guards, on purpose: a user who
+  /// meets the paywall on their third success should be asked on their fourth,
+  /// not have the third not count.
+  public func recordMilestoneAndShouldAsk() -> Bool {
+    let count = defaults.integer(forKey: milestoneKey) + 1
+    defaults.set(count, forKey: milestoneKey)
 
-        guard !paywallSeenThisSession else { return false }
-        guard count >= threshold else { return false }
+    guard !paywallSeenThisSession else { return false }
+    guard count >= threshold else { return false }
 
-        let version = currentVersion()
-        guard defaults.string(forKey: askedVersionKey) != version else { return false }
-        defaults.set(version, forKey: askedVersionKey)
-        return true
-    }
+    let version = currentVersion()
+    guard defaults.string(forKey: askedVersionKey) != version else { return false }
+    defaults.set(version, forKey: askedVersionKey)
+    return true
+  }
 
-    /// How many successful outcomes have been recorded, for a debug readout.
-    public var milestoneCount: Int { defaults.integer(forKey: milestoneKey) }
+  /// How many successful outcomes have been recorded, for a debug readout.
+  public var milestoneCount: Int { defaults.integer(forKey: milestoneKey) }
 
-    public static func shortVersion(bundle: Bundle = .main) -> String {
-        bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
-    }
+  public static func shortVersion(bundle: Bundle = .main) -> String {
+    bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
+  }
 
-    /// Clears the stored state. Exposed unconditionally rather than behind
-    /// `#if DEBUG` so a consuming app can wire it to a hidden developer action
-    /// and so the tests can run against a release build of the package.
-    public func reset() {
-        defaults.removeObject(forKey: milestoneKey)
-        defaults.removeObject(forKey: askedVersionKey)
-        paywallSeenThisSession = false
-    }
+  /// Clears the stored state. Exposed unconditionally rather than behind
+  /// `#if DEBUG` so a consuming app can wire it to a hidden developer action
+  /// and so the tests can run against a release build of the package.
+  public func reset() {
+    defaults.removeObject(forKey: milestoneKey)
+    defaults.removeObject(forKey: askedVersionKey)
+    paywallSeenThisSession = false
+  }
 }

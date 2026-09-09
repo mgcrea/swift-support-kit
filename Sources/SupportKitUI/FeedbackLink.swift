@@ -20,55 +20,55 @@ import SwiftUI
 /// apps have bespoke, well-designed help sheets running to hundreds of lines;
 /// replacing those is a different project, and one that would block this one.
 public struct FeedbackLink: View {
-    private let app: SupportApp
-    private let kind: FeedbackKind
-    private let title: String
-    private let systemImage: String
+  private let app: SupportApp
+  private let kind: FeedbackKind
+  private let title: String
+  private let systemImage: String
 
-    public init(
-        app: SupportApp,
-        kind: FeedbackKind = .bug,
-        title: String = "Send Feedback",
-        systemImage: String = "bubble.left.and.exclamationmark.bubble.right"
-    ) {
-        self.app = app
-        self.kind = kind
-        self.title = title
-        self.systemImage = systemImage
-    }
+  public init(
+    app: SupportApp,
+    kind: FeedbackKind = .bug,
+    title: String = "Send Feedback",
+    systemImage: String = "bubble.left.and.exclamationmark.bubble.right"
+  ) {
+    self.app = app
+    self.kind = kind
+    self.title = title
+    self.systemImage = systemImage
+  }
 
-    public var body: some View {
-        Link(destination: app.feedbackURL(kind: kind)) {
-            Label(title, systemImage: systemImage)
-        }
+  public var body: some View {
+    Link(destination: app.feedbackURL(kind: kind)) {
+      Label(title, systemImage: systemImage)
     }
+  }
 }
 
 /// A link to the public issue tracker. Renders nothing when the app has none,
 /// so a call site needs no `if let` of its own.
 public struct IssueTrackerLink: View {
-    private let app: SupportApp
-    private let kind: FeedbackKind
-    private let title: String
-    private let systemImage: String
+  private let app: SupportApp
+  private let kind: FeedbackKind
+  private let title: String
+  private let systemImage: String
 
-    public init(
-        app: SupportApp,
-        kind: FeedbackKind = .bug,
-        title: String = "Report an Issue",
-        systemImage: String = "exclamationmark.triangle"
-    ) {
-        self.app = app
-        self.kind = kind
-        self.title = title
-        self.systemImage = systemImage
-    }
+  public init(
+    app: SupportApp,
+    kind: FeedbackKind = .bug,
+    title: String = "Report an Issue",
+    systemImage: String = "exclamationmark.triangle"
+  ) {
+    self.app = app
+    self.kind = kind
+    self.title = title
+    self.systemImage = systemImage
+  }
 
-    public var body: some View {
-        if let url = app.issueURL(kind: kind) {
-            Link(destination: url) {
-                Label(title, systemImage: systemImage)
-            }
-        }
+  public var body: some View {
+    if let url = app.issueURL(kind: kind) {
+      Link(destination: url) {
+        Label(title, systemImage: systemImage)
+      }
     }
+  }
 }

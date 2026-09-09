@@ -12,15 +12,15 @@ import PackageDescription
 // consuming apps sit anywhere from macOS 15.5 to 26.x, and a floor raised to
 // match the newest of them would lock out the oldest for no gain.
 let package = Package(
-    name: "swift-support-kit",
-    platforms: [.macOS(.v15), .iOS(.v17)],
-    products: [
-        .library(name: "SupportKit", targets: ["SupportKit"]),
-        .library(name: "SupportKitUI", targets: ["SupportKitUI"]),
-    ],
-    targets: [
-        .target(name: "SupportKit"),
-        .target(name: "SupportKitUI", dependencies: ["SupportKit"]),
-        .testTarget(name: "SupportKitTests", dependencies: ["SupportKit"]),
-    ]
+  name: "swift-support-kit",
+  platforms: [.macOS(.v15), .iOS(.v17)],
+  products: [
+    .library(name: "SupportKit", targets: ["SupportKit"]),
+    .library(name: "SupportKitUI", targets: ["SupportKitUI"]),
+  ],
+  targets: [
+    .target(name: "SupportKit"),
+    .target(name: "SupportKitUI", dependencies: ["SupportKit"]),
+    .testTarget(name: "SupportKitTests", dependencies: ["SupportKit"]),
+  ]
 )

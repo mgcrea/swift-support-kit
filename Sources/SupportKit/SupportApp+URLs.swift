@@ -15,187 +15,188 @@ import Foundation
 // only be described; this can be read.
 
 extension SupportApp {
-    /// The web feedback form, prefilled.
-    ///
-    /// The diagnostics ride as query parameters so the page can render them as
-    /// visible, editable, deletable fields. They must never become hidden inputs:
-    /// "you can see everything it sends" is the claim that makes this design
-    /// better than an in-app form rather than merely equivalent to it.
-    public func feedbackURL(
-        kind: FeedbackKind,
-        subject: String? = nil,
-        diagnostics: Diagnostics = .current
-    ) -> URL {
-        var components = URLComponents()
-        components.scheme = siteURL.scheme
-        components.host = siteURL.host
-        components.port = siteURL.port
-        components.path = feedbackPath
+  /// The web feedback form, prefilled.
+  ///
+  /// The diagnostics ride as query parameters so the page can render them as
+  /// visible, editable, deletable fields. They must never become hidden inputs:
+  /// "you can see everything it sends" is the claim that makes this design
+  /// better than an in-app form rather than merely equivalent to it.
+  public func feedbackURL(
+    kind: FeedbackKind,
+    subject: String? = nil,
+    diagnostics: Diagnostics = .current
+  ) -> URL {
+    var components = URLComponents()
+    components.scheme = siteURL.scheme
+    components.host = siteURL.host
+    components.port = siteURL.port
+    components.path = feedbackPath
 
-        var items = [
-            URLQueryItem(name: "v", value: String(Self.contractVersion)),
-            URLQueryItem(name: "app", value: slug),
-            URLQueryItem(name: "kind", value: kind.rawValue),
-            URLQueryItem(name: "av", value: diagnostics.appVersion),
-            URLQueryItem(name: "os", value: diagnostics.osVersion),
-            URLQueryItem(name: "hw", value: diagnostics.hardware),
-            URLQueryItem(name: "lang", value: diagnostics.language),
-        ]
-        if let seed = Self.trimmedSubject(subject) {
-            items.append(URLQueryItem(name: "s", value: seed))
-        }
-        components.queryItems = items
-
-        // The force-unwrap is safe and the alternative is worse: `components`
-        // has a scheme, a host and a path taken from an already-valid `URL`, so
-        // the only way this returns nil is a `siteURL` that was never a web URL.
-        // Returning an optional here would push a `?? someFallbackURL` into
-        // every call site, and a fallback support URL is a bug that hides itself.
-        return components.url!
+    var items = [
+      URLQueryItem(name: "v", value: String(Self.contractVersion)),
+      URLQueryItem(name: "app", value: slug),
+      URLQueryItem(name: "kind", value: kind.rawValue),
+      URLQueryItem(name: "av", value: diagnostics.appVersion),
+      URLQueryItem(name: "os", value: diagnostics.osVersion),
+      URLQueryItem(name: "hw", value: diagnostics.hardware),
+      URLQueryItem(name: "lang", value: diagnostics.language),
+    ]
+    if let seed = Self.trimmedSubject(subject) {
+      items.append(URLQueryItem(name: "s", value: seed))
     }
+    components.queryItems = items
 
-    /// The app's support page.
-    public var supportURL: URL {
-        siteURL.appendingPathComponent(supportPath)
-    }
+    // The force-unwrap is safe and the alternative is worse: `components`
+    // has a scheme, a host and a path taken from an already-valid `URL`, so
+    // the only way this returns nil is a `siteURL` that was never a web URL.
+    // Returning an optional here would push a `?? someFallbackURL` into
+    // every call site, and a fallback support URL is a bug that hides itself.
+    return components.url!
+  }
 
-    /// A prefilled GitHub issue on the shared tracker, or nil when the app does
-    /// not surface one.
-    ///
-    /// Kept as the *secondary* path everywhere. It costs a GitHub account and it
-    /// is public — fine for the developer-facing apps, a wall for the ones sold
-    /// to photographers and retouchers, who will not post a client's unreleased
-    /// artwork to a public tracker to report a bug in it.
-    public func issueURL(kind: FeedbackKind, diagnostics: Diagnostics = .current) -> URL? {
-        guard let trackerURL else { return nil }
-        // The tracker URL points at the app's folder; issues live at the repo root.
-        guard
-            var components = URLComponents(
-                url: trackerURL, resolvingAgainstBaseURL: false)
-        else { return nil }
-        components.path = Self.issuesPath(from: components.path)
-        components.queryItems = [
-            URLQueryItem(name: "labels", value: slug),
-            URLQueryItem(name: "title", value: "[\(slug)] "),
-            URLQueryItem(name: "body", value: issueBody(kind: kind, diagnostics: diagnostics)),
-        ]
-        return components.url
-    }
+  /// The app's support page.
+  public var supportURL: URL {
+    siteURL.appendingPathComponent(supportPath)
+  }
 
-    /// A prefilled mail draft — the fallback when there is no browser answer.
-    ///
-    /// **`mailto:` is not an HTTP query and does not share its rules.** Two
-    /// differences bite, and both produce a wrong-looking draft rather than an
-    /// error:
-    ///
-    /// - `+` is a literal plus sign, not a space. The existing
-    ///   `GITHUB_NEW_ISSUE_URL` constants in the website configs end in `+`
-    ///   precisely because that *is* correct for HTTP — reuse one here and the
-    ///   subject line reads `[silhouette]+`.
-    /// - Line breaks must be CRLF (`%0D%0A`). A bare `%0A` is tolerated by some
-    ///   clients and collapsed by others.
-    ///
-    /// `URLComponents` percent-encodes a space as `%20`, which is right for both,
-    /// so the body is built through it rather than by string concatenation.
-    public func mailtoURL(kind: FeedbackKind, diagnostics: Diagnostics = .current) -> URL? {
-        // `URLComponents` is used for the query **only**, and the `mailto:` head
-        // is assembled by hand. Setting `.scheme` and `.path` and reading `.url`
-        // back does work — on a new enough OS. macOS 15 still resolves this
-        // through the older CFURL implementation, where the same components give
-        // an empty `path`, and CI on the package's own deployment floor is what
-        // caught it. A support link that silently degrades on the oldest OS a
-        // consuming app supports is precisely the bug this package must not have,
-        // so the output is made independent of which implementation is present.
-        var query = URLComponents()
-        query.queryItems = [
-            URLQueryItem(name: "subject", value: "[\(slug)] \(kind.rawValue)"),
-            URLQueryItem(name: "body", value: mailBody(diagnostics: diagnostics)),
-        ]
-        guard let encodedQuery = query.percentEncodedQuery else { return nil }
-        // The address is percent-encoded too: `urlPathAllowed` keeps `@` and `.`
-        // intact, which is what a mailbox needs, while a stray space or unicode
-        // in a misconfigured address cannot produce an unparseable URL.
-        guard
-            let address = supportEmail.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
-        else { return nil }
-        return URL(string: "mailto:\(address)?\(encodedQuery)")
-    }
+  /// A prefilled GitHub issue on the shared tracker, or nil when the app does
+  /// not surface one.
+  ///
+  /// Kept as the *secondary* path everywhere. It costs a GitHub account and it
+  /// is public — fine for the developer-facing apps, a wall for the ones sold
+  /// to photographers and retouchers, who will not post a client's unreleased
+  /// artwork to a public tracker to report a bug in it.
+  public func issueURL(kind: FeedbackKind, diagnostics: Diagnostics = .current) -> URL? {
+    guard let trackerURL else { return nil }
+    // The tracker URL points at the app's folder; issues live at the repo root.
+    guard
+      var components = URLComponents(
+        url: trackerURL, resolvingAgainstBaseURL: false)
+    else { return nil }
+    components.path = Self.issuesPath(from: components.path)
+    components.queryItems = [
+      URLQueryItem(name: "labels", value: slug),
+      URLQueryItem(name: "title", value: "[\(slug)] "),
+      URLQueryItem(name: "body", value: issueBody(kind: kind, diagnostics: diagnostics)),
+    ]
+    return components.url
+  }
+
+  /// A prefilled mail draft — the fallback when there is no browser answer.
+  ///
+  /// **`mailto:` is not an HTTP query and does not share its rules.** Two
+  /// differences bite, and both produce a wrong-looking draft rather than an
+  /// error:
+  ///
+  /// - `+` is a literal plus sign, not a space. The existing
+  ///   `GITHUB_NEW_ISSUE_URL` constants in the website configs end in `+`
+  ///   precisely because that *is* correct for HTTP — reuse one here and the
+  ///   subject line reads `[silhouette]+`.
+  /// - Line breaks must be CRLF (`%0D%0A`). A bare `%0A` is tolerated by some
+  ///   clients and collapsed by others.
+  ///
+  /// `URLComponents` percent-encodes a space as `%20`, which is right for both,
+  /// so the body is built through it rather than by string concatenation.
+  public func mailtoURL(kind: FeedbackKind, diagnostics: Diagnostics = .current) -> URL? {
+    // `URLComponents` is used for the query **only**, and the `mailto:` head
+    // is assembled by hand. Setting `.scheme` and `.path` and reading `.url`
+    // back does work — on a new enough OS. macOS 15 still resolves this
+    // through the older CFURL implementation, where the same components give
+    // an empty `path`, and CI on the package's own deployment floor is what
+    // caught it. A support link that silently degrades on the oldest OS a
+    // consuming app supports is precisely the bug this package must not have,
+    // so the output is made independent of which implementation is present.
+    var query = URLComponents()
+    query.queryItems = [
+      URLQueryItem(name: "subject", value: "[\(slug)] \(kind.rawValue)"),
+      URLQueryItem(name: "body", value: mailBody(diagnostics: diagnostics)),
+    ]
+    guard let encodedQuery = query.percentEncodedQuery else { return nil }
+    // The address is percent-encoded too: `urlPathAllowed` keeps `@` and `.`
+    // intact, which is what a mailbox needs, while a stray space or unicode
+    // in a misconfigured address cannot produce an unparseable URL.
+    guard
+      let address = supportEmail.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
+    else { return nil }
+    return URL(string: "mailto:\(address)?\(encodedQuery)")
+  }
 }
 
 // MARK: - Bodies
 
 extension SupportApp {
-    /// The markdown issue template, with the environment already filled in.
-    ///
-    /// The Mac model line used to ask the user to type it — and the four copies
-    /// of this template had already drifted on what to suggest (`M1 / M2 / M3 / M4`
-    /// in one, `M1 / M2 / M3 / Intel` in another). A field nobody fills reliably
-    /// becomes a field nobody has to.
-    func issueBody(kind: FeedbackKind, diagnostics: Diagnostics) -> String {
-        let heading =
-            switch kind {
-            case .bug: "### What happened"
-            case .idea: "### What you would like"
-            case .question: "### Your question"
-            }
-        return """
-            \(heading)
+  /// The markdown issue template, with the environment already filled in.
+  ///
+  /// The Mac model line used to ask the user to type it — and the four copies
+  /// of this template had already drifted on what to suggest (`M1 / M2 / M3 / M4`
+  /// in one, `M1 / M2 / M3 / Intel` in another). A field nobody fills reliably
+  /// becomes a field nobody has to.
+  func issueBody(kind: FeedbackKind, diagnostics: Diagnostics) -> String {
+    let heading =
+      switch kind {
+      case .bug: "### What happened"
+      case .idea: "### What you would like"
+      case .question: "### Your question"
+      }
+    return """
+      \(heading)
 
 
-            ### Steps to reproduce
-            1.
-            2.
-            3.
+      ### Steps to reproduce
+      1.
+      2.
+      3.
 
-            ### Expected behaviour
-
-
-            ### Environment
-            - \(displayName): \(diagnostics.appVersion)
-            - OS: \(diagnostics.osVersion)
-            - Model: \(diagnostics.hardware)
-
-            ### Anything else
-            <!-- Screenshots, logs, or anything else that may help -->
-            """
-    }
-
-    /// The mail body. Shorter than the issue template on purpose: a mail client
-    /// is where someone writes prose, and an HTML-comment scaffold read as plain
-    /// text is noise they have to delete first.
-    func mailBody(diagnostics: Diagnostics) -> String {
-        """
+      ### Expected behaviour
 
 
-        —
-        \(displayName) \(diagnostics.appVersion) · \(diagnostics.osVersion) · \(diagnostics.hardware)
-        """
-    }
+      ### Environment
+      - \(displayName): \(diagnostics.appVersion)
+      - OS: \(diagnostics.osVersion)
+      - Model: \(diagnostics.hardware)
+
+      ### Anything else
+      <!-- Screenshots, logs, or anything else that may help -->
+      """
+  }
+
+  /// The mail body. Shorter than the issue template on purpose: a mail client
+  /// is where someone writes prose, and an HTML-comment scaffold read as plain
+  /// text is noise they have to delete first.
+  func mailBody(diagnostics: Diagnostics) -> String {
+    """
+
+
+    —
+    \(displayName) \(diagnostics.appVersion) · \(diagnostics.osVersion) · \(diagnostics.hardware)
+    """
+  }
 }
 
 // MARK: - Helpers
 
 extension SupportApp {
-    /// `/mgcrea/support/tree/main/silhouette` → `/mgcrea/support/issues/new`.
-    ///
-    /// The configured tracker URL points at the app's folder because that is the
-    /// useful thing to *browse*; issues are filed at the repository root. Slicing
-    /// at `/tree/` keeps one configured URL serving both, so an app cannot be
-    /// given a browse link and a file link that disagree.
-    static func issuesPath(from path: String) -> String {
-        let root = path.range(of: "/tree/").map { String(path[path.startIndex..<$0.lowerBound]) } ?? path
-        return root.hasSuffix("/") ? root + "issues/new" : root + "/issues/new"
-    }
+  /// `/mgcrea/support/tree/main/silhouette` → `/mgcrea/support/issues/new`.
+  ///
+  /// The configured tracker URL points at the app's folder because that is the
+  /// useful thing to *browse*; issues are filed at the repository root. Slicing
+  /// at `/tree/` keeps one configured URL serving both, so an app cannot be
+  /// given a browse link and a file link that disagree.
+  static func issuesPath(from path: String) -> String {
+    let root =
+      path.range(of: "/tree/").map { String(path[path.startIndex..<$0.lowerBound]) } ?? path
+    return root.hasSuffix("/") ? root + "issues/new" : root + "/issues/new"
+  }
 
-    /// Trim, drop if empty, and truncate to the cap on a character boundary.
-    ///
-    /// Truncation is by `Character`, not by UTF-8 byte or UTF-16 unit, so a
-    /// subject ending in an emoji or a combining accent cannot be cut in half.
-    static func trimmedSubject(_ subject: String?) -> String? {
-        guard let subject else { return nil }
-        let trimmed = subject.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        guard trimmed.count > maxSubjectLength else { return trimmed }
-        return String(trimmed.prefix(maxSubjectLength))
-    }
+  /// Trim, drop if empty, and truncate to the cap on a character boundary.
+  ///
+  /// Truncation is by `Character`, not by UTF-8 byte or UTF-16 unit, so a
+  /// subject ending in an emoji or a combining accent cannot be cut in half.
+  static func trimmedSubject(_ subject: String?) -> String? {
+    guard let subject else { return nil }
+    let trimmed = subject.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+    guard trimmed.count > maxSubjectLength else { return trimmed }
+    return String(trimmed.prefix(maxSubjectLength))
+  }
 }
