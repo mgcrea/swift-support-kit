@@ -71,8 +71,9 @@ anything in this list. A test asserts it.
 .package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.0.0"))
 ```
 
-Two products. `SupportKit` is Foundation-only, so it unit-tests without a host app and imports
-from non-UI modules. `SupportKitUI` adds the SwiftUI surface.
+Three products. `SupportKit` is Foundation-only, so it unit-tests without a host app and imports
+from non-UI modules. `SupportKitUI` adds the SwiftUI surface. `SupportKitSettings` adds the
+settings scaffold, kept separate because it is the part that will churn.
 
 ## The Help menu
 
@@ -91,6 +92,113 @@ bug in it.
 
 The ⌘/ help action stays a closure. Every app already routes it its own way, and replacing that
 plumbing is not this package's job.
+
+## Settings
+
+The sidebar, the persisted pane, the accessibility identifiers and the deep-linking, once. The
+app supplies only its pane bodies.
+
+```swift
+import SupportKitSettings
+
+enum SettingsPane: String, SupportKitSettings.SettingsPane {
+    case general, activity, about, licence
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .general: "General"
+        case .activity: "Activity"
+        case .about: "About"
+        case .licence: "Licence"
+        }
+    }
+    var systemImage: String {
+        switch self {
+        case .general: "gearshape"
+        case .activity: "list.bullet.rectangle"
+        case .about: "info.circle"
+        case .licence: "key"
+        }
+    }
+    var group: SettingsPaneGroup { self == .licence ? .entitlement : .configuration }
+    static var defaultPane: Self { .general }
+}
+
+enum Support {
+    static let app = SupportApp(slug: "cupertino", displayName: "Cupertino", siteURL: …)
+    static let settings = SettingsSelection<SettingsPane>(app: app, legacyKeys: ["settingsPane"])
+}
+
+SettingsScaffold(selection: Support.settings, staged: DemoSeed.stagedPane) { pane in
+    switch pane {
+    case .general: GeneralPane()
+    case .activity: ActivityPane()
+    case .about: AboutSettingsPane(app: Support.app)
+    case .licence: LicencePane()
+    }
+}
+.settingsWindowSize(CGSize(width: 720, height: 520))
+```
+
+### Deep-linking
+
+Two lines, in this order, and the order is the whole mechanism:
+
+```swift
+Support.settings.select(.licence)
+openSettings()                       // or the app's own window controller
+```
+
+The write moves the sidebar; opening is a separate act. The scaffold binds through
+`@AppStorage`, so the write lands whether the window is being built for the first time or has
+been open behind Xcode for an hour. Mirroring the value into `@State` is exactly how a deep link
+into an *already-open* window stops working — and only for that case, which is the one nobody
+tests.
+
+`openSettings` is deliberately not wrapped: it does not exist on iOS, and the two `LSUIElement`
+apps open a hand-built `NSWindow` that knows about their dock presence, tabbing mode and
+activation policy. The contract stops at the write.
+
+### `legacyKeys` is not optional for three apps
+
+`SettingsSelection(app:)` derives `"<slug>.settingsPane"`. Any app that shipped a bare
+`"settingsPane"` must pass `legacyKeys: ["settingsPane"]` or every user's pane silently resets.
+The migration runs once, only when the canonical key is empty, and removes the old key.
+
+### About
+
+```swift
+AboutSettingsPane(app: Support.app)              // a whole pane
+AboutSettingsSection(app: Support.app)           // just the rows, for an existing Form
+```
+
+Version and build from `Diagnostics`, the machine, a copy button that writes
+`Diagnostics.bugReportSummary` to the pasteboard, and `SupportSettingsSection` beneath it.
+
+The support rows matter most on **iOS**, where `SupportCommands` cannot exist — there is no Help
+menu — so without them the feedback form, the tracker and the support page are reachable from
+nowhere at all.
+
+Pass `diagnostics:` to pin the version for a screenshot run. A real version number renders into
+every settings capture, which churns a golden gate on each release and can publish a version to
+a marketing site before the listing showing it has caught up.
+
+### Screenshots
+
+`staged:` forces a pane **and drops every selection write** while it is set, so a capture run
+cannot land on whatever the developer last had open, and cannot change it either. `onPaneChange:`
+is there to assert on: a settings window that came up on the wrong pane is a valid,
+correctly-sized, perfectly still photograph that every automated gate passes.
+
+The package never learns about `DemoSeed`, `ScreenshotStage` or `DemoMode` — differently named
+per-app types with different launch-argument parsing. It takes a pane or nil.
+
+### Sizing
+
+`.settingsWindowSize(_:)` goes on the **content**, never the scene or the window. A `Settings`
+scene sizes itself to its content, so `NSWindow.setContentSize` loses to SwiftUI's clamp: it
+takes the height and silently drops the width. Three apps in the fleet found that separately
+before anyone noticed it was one bug.
 
 ## Rating prompts
 
