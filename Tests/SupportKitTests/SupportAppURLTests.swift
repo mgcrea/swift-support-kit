@@ -183,10 +183,17 @@ struct MailtoURLTests {
     #expect(params(url)["subject"] == "[silhouette] question")
   }
 
+  /// The sign-off is `Diagnostics.bugReportSummary`, so this asserts the same
+  /// two lines the About pane's copy button puts on the pasteboard. That is the
+  /// point of the shared function: a mail trailer and a pasted block that
+  /// describe one machine and are free to disagree eventually will, and nothing
+  /// would say which of them was wrong.
   @Test("signs off with the environment")
   func bodyCarriesEnvironment() {
     let body = params(silhouette.mailtoURL(kind: .bug, diagnostics: fixture)!)["body"] ?? ""
-    #expect(body.contains("Silhouette 1.4 (168) · macOS 26.4 · Mac16,10"))
+    #expect(body.contains("Silhouette 1.4 (168)"))
+    #expect(body.contains("macOS 26.4 · Mac16,10 · en"))
+    #expect(body.contains(fixture.bugReportSummary(for: silhouette)))
   }
 }
 

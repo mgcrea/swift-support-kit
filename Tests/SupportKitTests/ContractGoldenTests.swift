@@ -81,4 +81,26 @@ struct ContractGoldenTests {
   func versionIsBare() {
     #expect(ContractGolden.url.contains("?v=\(SupportApp.contractVersion)&"))
   }
+
+  /// Pinned for the same reason as the URL, one repository closer to home. The
+  /// summary is written by the About pane's copy button and read by whoever
+  /// triages the report, and the mail trailer is built from it — so a change here
+  /// is a change to two user-visible strings at once and should have to be made
+  /// on purpose.
+  @Test("pins the bug report summary")
+  func pinsBugReportSummary() {
+    #expect(
+      ContractGolden.diagnostics.bugReportSummary(for: ContractGolden.app) == """
+        Silhouette 1.4 (168)
+        macOS 26.4 · Mac16,10 · en
+        """
+    )
+  }
+
+  /// The mail trailer must *be* the summary rather than merely resemble it.
+  @Test("the mail body signs off with the summary itself")
+  func mailBodyUsesSummary() {
+    let body = ContractGolden.app.mailBody(diagnostics: ContractGolden.diagnostics)
+    #expect(body.contains(ContractGolden.diagnostics.bugReportSummary(for: ContractGolden.app)))
+  }
 }

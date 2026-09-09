@@ -32,6 +32,18 @@ public struct SupportApp: Sendable {
   /// The public issue tracker, or nil for an app that does not want one
   /// surfaced. Nil hides the link rather than rendering a dead one.
   public let trackerURL: URL?
+  /// The numeric App Store id — `"6748491234"` — or nil for an app that is not
+  /// on the store.
+  ///
+  /// Nil hides the rating link rather than rendering a dead one, the same rule
+  /// `trackerURL` follows. Two of the twelve ship Developer ID signed and
+  /// notarised instead, and have no store page to send anyone to.
+  ///
+  /// A `String` rather than an `Int`: it is an identifier that happens to be
+  /// digits, it is only ever interpolated into a URL, and nothing counts with
+  /// it. The empty string is **not** a substitute for nil — it would build a
+  /// URL that resolves to a 404 rather than hiding the row.
+  public let appStoreID: String?
   /// Defaults to `/feedback/`. Overridable because balise is bilingual and a
   /// French user must land on `/en/feedback/`'s counterpart, not on English.
   public let feedbackPath: String
@@ -44,6 +56,7 @@ public struct SupportApp: Sendable {
     siteURL: URL,
     supportEmail: String = "support@mgcrea.io",
     trackerURL: URL? = nil,
+    appStoreID: String? = nil,
     feedbackPath: String = "/feedback/",
     supportPath: String = "/support/"
   ) {
@@ -52,6 +65,7 @@ public struct SupportApp: Sendable {
     self.siteURL = siteURL
     self.supportEmail = supportEmail
     self.trackerURL = trackerURL
+    self.appStoreID = appStoreID
     self.feedbackPath = feedbackPath
     self.supportPath = supportPath
   }

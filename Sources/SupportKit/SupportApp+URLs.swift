@@ -59,6 +59,26 @@ extension SupportApp {
     siteURL.appendingPathComponent(supportPath)
   }
 
+  /// The App Store page, opened straight onto the write-a-review sheet, or nil
+  /// for an app that is not on the store.
+  ///
+  /// `https://apps.apple.com/app/id…?action=write-review`, and **not**
+  /// `itms-apps://`. The `itms-apps` scheme is undocumented, and on a machine
+  /// where nothing claims it the link does not fail visibly — it does nothing
+  /// at all. The `https` form is handled by the App Store app when it is
+  /// installed and degrades to the web page when it is not, so there is no path
+  /// with nowhere to go.
+  ///
+  /// Worth a row of its own for the reason `ReviewPrompt` was written: across
+  /// the whole portfolio there have been two written reviews, ever — too few for
+  /// the store to show a rating overview on any page. `requestReview` is
+  /// throttled to roughly three prompts a year and may show nothing; a link in
+  /// settings is neither throttled nor tied to a milestone, and costs one row.
+  public var appStoreReviewURL: URL? {
+    guard let appStoreID, !appStoreID.isEmpty else { return nil }
+    return URL(string: "https://apps.apple.com/app/id\(appStoreID)?action=write-review")
+  }
+
   /// A prefilled GitHub issue on the shared tracker, or nil when the app does
   /// not surface one.
   ///
@@ -163,12 +183,19 @@ extension SupportApp {
   /// The mail body. Shorter than the issue template on purpose: a mail client
   /// is where someone writes prose, and an HTML-comment scaffold read as plain
   /// text is noise they have to delete first.
+  ///
+  /// The sign-off is `Diagnostics.bugReportSummary` rather than its own
+  /// interpolation, and that is load-bearing. The About pane's copy button puts
+  /// the same facts on the pasteboard, and two strings describing one machine
+  /// that are free to disagree eventually will — the same failure the `v=1`
+  /// contract version exists to catch between the app and the website. One of
+  /// them would then be wrong in a bug report, and nothing would say which.
   func mailBody(diagnostics: Diagnostics) -> String {
     """
 
 
     —
-    \(displayName) \(diagnostics.appVersion) · \(diagnostics.osVersion) · \(diagnostics.hardware)
+    \(diagnostics.bugReportSummary(for: self))
     """
   }
 }
