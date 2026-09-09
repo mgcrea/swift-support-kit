@@ -7,16 +7,33 @@ on:
 
 jobs:
   test:
-    # macOS 15 is not incidental: it is the package's declared floor, and the
-    # point of testing there is to catch an API newer than the floor allows.
-    # Building only on the newest runner would let a macOS 26 symbol through and
-    # break the one consuming app that still targets 15.
-    runs-on: macos-15
+    strategy:
+      # Both ends, and a failure on one still runs the other: knowing whether a break is
+      # "only on the floor" or "only on the newest" is most of the diagnosis.
+      fail-fast: false
+      matrix:
+        # macos-15 is not incidental: it is the package's declared floor, and the point of
+        # testing there is to catch an API newer than the floor allows. Building only on the
+        # newest runner would let a macOS 26 symbol through and break the one consuming app
+        # that still targets 15. macos-latest catches the opposite failure — source that no
+        # longer compiles on the toolchain the consuming apps are actually built with.
+        os: [macos-15, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Show toolchain
         run: swift --version
       - name: Build
         run: swift build -v
       - name: Test
         run: swift test -v
+
+  # A gate rather than a suggestion: --strict turns every lint finding into a failure.
+  # One runner only, and the newest one, because --strict on two swift-format versions fails
+  # whenever they disagree about a file neither author nor reviewer touched.
+  lint:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Lint
+        run: xcrun swift-format lint --strict --recursive Package.swift Sources Tests
