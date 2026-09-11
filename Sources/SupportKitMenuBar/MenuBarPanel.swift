@@ -62,6 +62,9 @@
     private let accessory: Accessory
     private let content: Content
 
+    /// Nil until the first layout pass; see `scrollingBody`.
+    @State private var contentHeight: CGFloat?
+
     /// - Parameters:
     ///   - app: supplies `displayName`, which names the panel, the primary
     ///     button and both tooltips — so the button whose width was measured
@@ -198,20 +201,59 @@
 
     // MARK: - Body
 
-    /// Plain when it fits, scrolling when it does not.
+    /// Plain when it fits, scrolling when it does not — decided from a measured
+    /// height rather than from the proposal.
     ///
-    /// `ViewThatFits` rather than an unconditional `ScrollView`: a scroll view
-    /// takes all the height it is offered, so the short panels — which is most
-    /// of them, most of the time — would grow to the cap and sit in a pool of
-    /// empty space. This keeps today's behaviour exactly until the content
-    /// genuinely exceeds the screen.
+    /// Both obvious spellings of this empty the panel, and they empty it the
+    /// same way for the same reason: **a `MenuBarExtra` panel proposes almost no
+    /// height.** The window sizes itself to its content, so on the pass that
+    /// matters the middle band is offered nothing, and anything flexible in the
+    /// vertical axis takes the offer.
+    ///
+    /// `ViewThatFits` went first. It picks the first child that fits the
+    /// proposal *it* is given, the cap has to sit outside it, and against a
+    /// proposal of nothing neither child fits — at which point it does not fall
+    /// back to the roomiest child, it takes the **last** one. That is the
+    /// `ScrollView`, laid out at no useful height. An unconditional
+    /// `ScrollView` under `.frame(maxHeight:)` fails identically: a scroll view
+    /// has no intrinsic height, so it accepts the nothing it is offered.
+    ///
+    /// Measured in bastion, the first spelling left the rows drawing forty
+    /// points below the panel's own bottom edge and the second clipped them
+    /// away entirely — a panel showing its header and its footer with nothing
+    /// between them, which reads as an app with no content rather than as a
+    /// broken layout.
+    ///
+    /// So the height is measured and the decision made from it. `fixedSize` is
+    /// what actually holds the panel open: it makes the band report its
+    /// content's ideal height and refuse to shrink to the proposal. The scroll
+    /// view appears only once the content genuinely outgrows the screen, where
+    /// it is given a **definite** height and so has something to accept.
+    ///
+    /// There is no first-frame flash, which is why the test is `> cap` rather
+    /// than a cap applied unconditionally: before anything is measured the panel
+    /// draws its real content at its natural height, which is already the right
+    /// answer for every panel that fits. Only an overflowing one switches, and
+    /// once switched the measurement still reads the full content height, so it
+    /// stays switched rather than oscillating.
     private var scrollingBody: some View {
-      ViewThatFits(in: .vertical) {
+      let measured =
         contentStack
-        ScrollView(.vertical) { contentStack }
-          .scrollBounceBehavior(.basedOnSize)
+        .onGeometryChange(for: CGFloat.self) { proxy in
+          proxy.size.height
+        } action: { height in
+          contentHeight = height
+        }
+
+      return Group {
+        if let contentHeight, contentHeight > metrics.bodyCap {
+          ScrollView(.vertical) { measured }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(height: metrics.bodyCap)
+        } else {
+          measured.fixedSize(horizontal: false, vertical: true)
+        }
       }
-      .frame(maxHeight: metrics.bodyCap)
     }
 
     private var contentStack: some View {
