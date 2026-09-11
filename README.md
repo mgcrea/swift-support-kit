@@ -233,6 +233,16 @@ MenuBarExtra {
 `onShowAbout` is optional: pass nil while an app has no About pane and the version renders as
 plain text rather than as a button that goes nowhere.
 
+### The header
+
+Name at the leading edge, version pinned to the trailing edge — armada's arrangement, which is
+the one the fleet settled on. Three apps showed a version here and they did not agree: two set
+it immediately after the name as a baseline-aligned suffix, one pushed it right. Both sides had
+a written reason, but the suffix argument was about a panel too narrow to spend width on, and
+the panel is a fixed 320 for everyone now. What settles it is that the two ends of the row are
+two destinations — the name opens the app, the version opens About — and a suffix reads as a
+footnote to the title rather than as its own target.
+
 ### One footer, two idioms
 
 The fleet drew two footers and they looked incompatible — three apps a single row, two a

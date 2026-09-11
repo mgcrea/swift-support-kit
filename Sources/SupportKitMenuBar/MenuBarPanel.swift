@@ -132,7 +132,27 @@
 
     private var header: some View {
       VStack(alignment: .leading, spacing: 2) {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
+        // armada's header, which is the one the fleet settled on.
+        //
+        // Three apps showed a version here and they did not agree: bastion and
+        // cupertino set it immediately after the name as a baseline-aligned
+        // suffix, armada pushed it to the trailing edge. Both had a written
+        // reason and bastion's and cupertino's was the same sentence twice —
+        // "the one piece of horizontal space that costs nothing", an argument
+        // about a panel too narrow to spend width on. That argument is about
+        // where a version may *fit*, not about where it belongs, and the panel
+        // is now a fixed 320 for everyone: the space is there either way.
+        //
+        // What settles it is what the two ends of this row are for. The name
+        // opens the app and the version opens About — two destinations, not a
+        // heading with a footnote — and a suffix reads as the latter. Pinned
+        // right, each end is one target, which is also why the version can be a
+        // button without looking like a typo in the title.
+        //
+        // Centre-aligned rather than baseline: a baseline shared across a
+        // spacer is not a visible relationship, and it is the wrong one to
+        // preserve once a glyph or a spinner can sit in the same row.
+        HStack(spacing: 6) {
           if let systemImage {
             Image(systemName: systemImage)
               .foregroundStyle(.tint)
@@ -157,11 +177,15 @@
           .accessibilityLabel(openTitle)
           .accessibilityIdentifier("menubar.title")
 
-          versionLabel
-
           Spacer()
 
+          // Before the version rather than after it, so the version stays the
+          // row's fixed right edge: almanac's accessory is a spinner that comes
+          // and goes, and a version that slid sideways whenever it appeared
+          // would be the one moving part in an otherwise static header.
           accessory
+
+          versionLabel
         }
 
         if let subtitle {
@@ -173,8 +197,8 @@
       }
     }
 
-    /// Baseline-aligned beside the name so it reads as a suffix rather than as a
-    /// second heading, and clickable when there is an About pane to reach.
+    /// Pinned to the trailing edge, and clickable when there is an About pane to
+    /// reach. See the header for why it sits there rather than beside the name.
     ///
     /// It opens **About**, not What's New. A version string is the build's
     /// identity, and what continues that question is the build number, the OS,
