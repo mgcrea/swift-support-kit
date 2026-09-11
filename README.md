@@ -68,12 +68,13 @@ anything in this list. A test asserts it.
 ## Install
 
 ```swift
-.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.0.0"))
+.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.2.0"))
 ```
 
-Three products. `SupportKit` is Foundation-only, so it unit-tests without a host app and imports
+Four products. `SupportKit` is Foundation-only, so it unit-tests without a host app and imports
 from non-UI modules. `SupportKitUI` adds the SwiftUI surface. `SupportKitSettings` adds the
-settings scaffold, kept separate because it is the part that will churn.
+settings scaffold, kept separate because it is the part that will churn. `SupportKitMenuBar`
+adds the menu bar panel, which is macOS-only and needs a newer floor than the rest.
 
 ## The Help menu
 
@@ -200,6 +201,70 @@ scene sizes itself to its content, so `NSWindow.setContentSize` loses to SwiftUI
 takes the height and silently drops the width. Three apps in the fleet found that separately
 before anyone noticed it was one bug.
 
+## The menu bar panel
+
+The chrome around a `MenuBarExtra` summary — header, footer row, width, scroll cap — once. The
+app supplies only the rows in the middle.
+
+```swift
+import SupportKitMenuBar
+
+MenuBarExtra {
+    MenuBarPanel(
+        app: .bastion,
+        version: AppInfo.shortVersion,
+        onOpenApp: { MainWindowController.show() },
+        onShowAbout: { SettingsWindowController.show(.about) },
+        footer: MenuBarFooter(
+            routes: [
+                .logs { MainWindowController.show(.log) },
+                .settings { SettingsWindowController.show() },
+            ],
+            whatsNew: Changelog.hasUnseen
+                ? .init(version: AppInfo.version) { SettingsWindowController.show(.whatsNew) }
+                : nil
+        )
+    ) {
+        // the app's own rows
+    }
+} label: { ... }
+```
+
+`onShowAbout` is optional: pass nil while an app has no About pane and the version renders as
+plain text rather than as a button that goes nowhere.
+
+### One footer, two idioms
+
+The fleet drew two footers and they looked incompatible — three apps a single row, two a
+vertical list. The difference turned out to be that the stacked pair have a **verb** ("Collect
+now", "Refresh Now"): work the panel does itself, which is neither the primary nor a route and
+cannot be reduced to a glyph nobody has to be taught. Everything else they listed was already a
+route. So it is one footer with one optional part:
+
+```
+[verbs — stacked, named, only if the app has any]
+───────
+[Open <App>]  ·······  [route] [route]  [Quit]
+[What's new in 1.2.0…  — only just after an update]
+```
+
+Two routes is the working ceiling, and it is a measurement rather than a taste: a fourth *text*
+button was recorded truncating "Open Cupertino" to "Open Cuperti…" at this width. Glyphs cost a
+fraction of that, which is why the row holds two of them and could not hold one more word.
+
+### Sizing
+
+`MenuBarMetrics.default` is 320 / 14 / 12, which is what the fleet converged on without
+coordinating. The number and the reasoning that argues for it now live in the same place —
+previously these were five sets of inline literals restated in prose more often than in code,
+and two comments in one app disagreed about that app's own width.
+
+`bodyCap` is derived from the screen rather than fixed, because a constant tuned on a laptop is
+wrong on a studio display in the direction nobody notices until a panel is cut off. It is read
+at layout time and is not reactive to a display change; `MenuBarExtra` content is lazy and
+rebuilt on every open, so the only window it can be wrong in is a display change *while the
+panel is open*.
+
 ## Rating prompts
 
 Wrapping `requestReview` in the two rules that decide *who* gets asked:
@@ -242,6 +307,10 @@ For the same reason there is no shared `HelpView`. Apps have bespoke help sheets
 macOS 15+ / iOS 17+, Swift 6. The floor is low on purpose: this package builds URLs, reads two
 sysctls and touches `UserDefaults`, so nothing in it needs a newer OS, and raising the floor to
 match the newest consuming app would lock out the oldest for no gain.
+
+`SupportKitMenuBar` is the exception: macOS-only, and its `MenuBarPanel` is `@available(macOS
+26, *)` because it leans on the glass button styles. It is a separate product so that floor
+lands only on the apps that ask for it.
 
 ## Notes for anyone reading the source
 
