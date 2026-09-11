@@ -1,0 +1,367 @@
+#if os(macOS)
+  import AppKit
+  import SupportKit
+  import SwiftUI
+
+  /// The chrome around a `MenuBarExtra(.window)` panel — header, footer, width,
+  /// and the one thing none of the five apps had: a body that scrolls.
+  ///
+  /// The app supplies its body through `content:`, which is the `VStack` it
+  /// already had. Everything around it belongs here:
+  ///
+  /// ```swift
+  /// MenuBarPanel(
+  ///     app: Support.app,
+  ///     version: AppInfo.shortVersion,
+  ///     onOpenApp: { MainWindowController.show() },
+  ///     onShowAbout: { SettingsWindowController.show(.about) },
+  ///     footer: MenuBarFooter(
+  ///         routes: [
+  ///             .logs { MainWindowController.show(.log) },
+  ///             .settings { SettingsWindowController.show() },
+  ///         ],
+  ///         whatsNew: Changelog.hasUnseen
+  ///             ? .init(version: AppInfo.version) { SettingsWindowController.show(.whatsNew) }
+  ///             : nil
+  ///     )
+  /// ) {
+  ///     gatewayStatus
+  ///     Divider()
+  ///     ServersSection(activity: activity)
+  /// }
+  /// ```
+  ///
+  /// ## Why the body scrolls and the chrome does not
+  ///
+  /// Not one of the five panels had a `ScrollView`. Each bounded its height by
+  /// hand-capping one list — `visible = 4`, `visibleSessions = 3` — and in two
+  /// of them the *other* list was uncapped and could run off the screen:
+  /// cupertino iterated twelve surfaces beside a connections list capped at four
+  /// *precisely because there is no scroll view*, and armada iterated however
+  /// many `~/.claude-<name>` folders exist at ~100pt each.
+  ///
+  /// So the cap belongs here, where it is one decision instead of five, and it
+  /// applies to the body alone. A panel that scrolled as a whole would take the
+  /// Quit button with it, which is worse than clipping: a summary you cannot
+  /// dismiss from.
+  ///
+  /// What this does **not** do is make the per-app caps redundant. Those stay,
+  /// and they should — "show four servers and then a link" is an editorial claim
+  /// about what a summary is for. This only stops that claim from being the one
+  /// thing between the app and a panel taller than the display.
+  @available(macOS 26, *)
+  public struct MenuBarPanel<Content: View, Accessory: View>: View {
+    private let app: SupportApp
+    private let version: String
+    private let systemImage: String?
+    private let subtitle: LocalizedStringKey?
+    private let metrics: MenuBarMetrics
+    private let onOpenApp: () -> Void
+    private let onShowAbout: (() -> Void)?
+    private let footer: MenuBarFooter
+    private let accessory: Accessory
+    private let content: Content
+
+    /// - Parameters:
+    ///   - app: supplies `displayName`, which names the panel, the primary
+    ///     button and both tooltips — so the button whose width was measured
+    ///     truncating cannot disagree with the panel it was measured in.
+    ///   - version: stays the app's own string. Armada suffixes `-dev`, bastion
+    ///     ` (debug)`, and both pin it for a screenshot run; a version derived
+    ///     here would quietly undo all three.
+    ///   - systemImage: a leading glyph, for the two panels that have one.
+    ///   - subtitle: a second header line. dev-pulse's status line.
+    ///   - onOpenApp: called by the title **and** the primary button. One
+    ///     closure, because they are one action — armada noticed that first.
+    ///   - onShowAbout: makes the version clickable. Pass nil while an app has
+    ///     no About pane; the version then renders as plain text rather than as
+    ///     a button that goes nowhere.
+    ///   - accessory: trailing header content. almanac's collecting spinner.
+    public init(
+      app: SupportApp,
+      version: String,
+      systemImage: String? = nil,
+      subtitle: LocalizedStringKey? = nil,
+      metrics: MenuBarMetrics = .default,
+      onOpenApp: @escaping () -> Void,
+      onShowAbout: (() -> Void)? = nil,
+      footer: MenuBarFooter,
+      @ViewBuilder accessory: () -> Accessory,
+      @ViewBuilder content: () -> Content
+    ) {
+      self.app = app
+      self.version = version
+      self.systemImage = systemImage
+      self.subtitle = subtitle
+      self.metrics = metrics
+      self.onOpenApp = onOpenApp
+      self.onShowAbout = onShowAbout
+      self.footer = footer
+      self.accessory = accessory()
+      self.content = content()
+    }
+
+    public var body: some View {
+      // spacing 0, with each band paying for its own gap. The single spaced
+      // `VStack` every app had cannot work once the middle band scrolls — and
+      // it is also what produced bastion's phantom gap, where a notice that
+      // rendered `EmptyView` still took a full 12pt slot for every licensed
+      // user, doubling the space under the header.
+      VStack(alignment: .leading, spacing: 0) {
+        header
+          .padding(.horizontal, metrics.padding)
+          .padding(.top, metrics.padding)
+          .padding(.bottom, metrics.spacing)
+
+        scrollingBody
+
+        footerView
+          .padding(.horizontal, metrics.padding)
+          .padding(.top, metrics.spacing)
+          .padding(.bottom, metrics.padding)
+      }
+      .frame(width: metrics.width)
+      .accessibilityElement(children: .contain)
+      .accessibilityIdentifier("menubar.panel")
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+      VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+          if let systemImage {
+            Image(systemName: systemImage)
+              .foregroundStyle(.tint)
+              // The glyph restates the name beside it. Announcing it twice is
+              // noise, and it carries nothing the title does not.
+              .accessibilityHidden(true)
+          }
+
+          // The title opens the window, same as the primary button below it.
+          //
+          // No link colour: this is the one piece of plain text in the panel,
+          // and colouring it would make it look like the only thing worth
+          // reading. The pointer and the tooltip are the affordance instead,
+          // which is how a Finder path bar says the same thing. (armada's
+          // reasoning, kept verbatim because it is the right one.)
+          Button(action: onOpenApp) {
+            Text(app.displayName).font(.headline)
+          }
+          .buttonStyle(.plain)
+          .pointerStyle(.link)
+          .help(openTitle)
+          .accessibilityLabel(openTitle)
+          .accessibilityIdentifier("menubar.title")
+
+          versionLabel
+
+          Spacer()
+
+          accessory
+        }
+
+        if let subtitle {
+          Text(subtitle)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+      }
+    }
+
+    /// Baseline-aligned beside the name so it reads as a suffix rather than as a
+    /// second heading, and clickable when there is an About pane to reach.
+    ///
+    /// It opens **About**, not What's New. A version string is the build's
+    /// identity, and what continues that question is the build number, the OS,
+    /// the machine and the copy-diagnostics button — the things you want with a
+    /// bug report open. What the build *changed* is a different question, asked
+    /// at a different moment, and it already has the one-shot row in the footer.
+    @ViewBuilder private var versionLabel: some View {
+      if let onShowAbout {
+        Button(action: onShowAbout) {
+          Text(version).font(.caption).foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+        .pointerStyle(.link)
+        .help(aboutTitle)
+        .accessibilityLabel(aboutTitle)
+        .accessibilityIdentifier("menubar.version")
+      } else {
+        Text(version)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .accessibilityIdentifier("menubar.version")
+      }
+    }
+
+    // MARK: - Body
+
+    /// Plain when it fits, scrolling when it does not.
+    ///
+    /// `ViewThatFits` rather than an unconditional `ScrollView`: a scroll view
+    /// takes all the height it is offered, so the short panels — which is most
+    /// of them, most of the time — would grow to the cap and sit in a pool of
+    /// empty space. This keeps today's behaviour exactly until the content
+    /// genuinely exceeds the screen.
+    private var scrollingBody: some View {
+      ViewThatFits(in: .vertical) {
+        contentStack
+        ScrollView(.vertical) { contentStack }
+          .scrollBounceBehavior(.basedOnSize)
+      }
+      .frame(maxHeight: metrics.bodyCap)
+    }
+
+    private var contentStack: some View {
+      VStack(alignment: .leading, spacing: metrics.spacing) {
+        content
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.horizontal, metrics.padding)
+    }
+
+    // MARK: - Footer
+
+    private var footerView: some View {
+      VStack(alignment: .leading, spacing: metrics.spacing) {
+        Divider()
+
+        if !footer.verbs.isEmpty {
+          VStack(alignment: .leading, spacing: 4) {
+            ForEach(footer.verbs) { verb in
+              verbButton(verb)
+            }
+          }
+          .buttonStyle(.plain)
+          .labelStyle(.titleAndIcon)
+
+          Divider()
+        }
+
+        actionRow
+
+        if let whatsNew = footer.whatsNew {
+          Divider()
+          Button("What's new in \(whatsNew.version)…", action: whatsNew.run)
+            .controlSize(.small)
+            .accessibilityIdentifier("menubar.whatsNew")
+        }
+      }
+    }
+
+    /// Glass on the left, plain on the right, and the gap after the primary
+    /// rather than before Quit: what opens something sits left, what you go to
+    /// sits right. Only the primary is tinted, because a tinted button is a
+    /// recommendation and it is the one being recommended; the glyphs beside
+    /// Quit are routes, not advice.
+    private var actionRow: some View {
+      HStack {
+        Button(action: onOpenApp) {
+          openTitle
+        }
+        .buttonStyle(.glass)
+        .keyboardShortcut("o")
+        .accessibilityIdentifier("menubar.open")
+
+        Spacer()
+
+        ForEach(footer.routes) { route in
+          routeButton(route)
+        }
+
+        // Terminate is spelled here rather than taken as a closure. All five
+        // apps passed the identical `NSApplication.shared.terminate(nil)`, and a
+        // parameter for it is one more thing that can differ between panels that
+        // must not differ. ⌘Q is supplied for the same reason: cupertino was
+        // missing both it and ⌘O from a row its own comments describe as the
+        // same row the siblings have.
+        Button("Quit") { NSApplication.shared.terminate(nil) }
+          .keyboardShortcut("q")
+          .accessibilityIdentifier("menubar.quit")
+      }
+      .controlSize(.small)
+    }
+
+    @ViewBuilder private func verbButton(_ verb: MenuBarAction) -> some View {
+      let button = Button(action: verb.run) {
+        Label {
+          Text(verb.title)
+        } icon: {
+          if let systemImage = verb.systemImage {
+            Image(systemName: systemImage)
+          }
+        }
+      }
+      .disabled(verb.isDisabled)
+      .help(verb.helpText)
+      .accessibilityIdentifier("menubar.verb.\(verb.id)")
+
+      if let shortcut = verb.shortcut {
+        button.keyboardShortcut(shortcut, modifiers: verb.modifiers)
+      } else {
+        button
+      }
+    }
+
+    /// A glyph, with its name reaching VoiceOver through `accessibilityLabel`
+    /// and the pointer through `help` — never through the glyph name, which is
+    /// what "gearshape" announced in three shipping apps.
+    @ViewBuilder private func routeButton(_ route: MenuBarAction) -> some View {
+      let button = Button(action: route.run) {
+        if let systemImage = route.systemImage {
+          Image(systemName: systemImage)
+        } else {
+          Text(route.title)
+        }
+      }
+      .disabled(route.isDisabled)
+      .help(route.helpText)
+      .accessibilityLabel(Text(route.title))
+      .accessibilityIdentifier("menubar.route.\(route.id)")
+
+      if let shortcut = route.shortcut {
+        button.keyboardShortcut(shortcut, modifiers: route.modifiers)
+      } else {
+        button
+      }
+    }
+
+    // MARK: - Strings
+
+    private var openTitle: Text { Text("Open \(app.displayName)") }
+    private var aboutTitle: Text { Text("About \(app.displayName)") }
+  }
+
+  // MARK: - The common case
+
+  @available(macOS 26, *)
+  extension MenuBarPanel where Accessory == EmptyView {
+    /// Four of the five panels have nothing trailing in the header.
+    public init(
+      app: SupportApp,
+      version: String,
+      systemImage: String? = nil,
+      subtitle: LocalizedStringKey? = nil,
+      metrics: MenuBarMetrics = .default,
+      onOpenApp: @escaping () -> Void,
+      onShowAbout: (() -> Void)? = nil,
+      footer: MenuBarFooter,
+      @ViewBuilder content: () -> Content
+    ) {
+      self.init(
+        app: app,
+        version: version,
+        systemImage: systemImage,
+        subtitle: subtitle,
+        metrics: metrics,
+        onOpenApp: onOpenApp,
+        onShowAbout: onShowAbout,
+        footer: footer,
+        accessory: { EmptyView() },
+        content: content
+      )
+    }
+  }
+#endif

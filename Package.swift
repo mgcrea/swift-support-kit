@@ -25,12 +25,15 @@ let package = Package(
     .library(name: "SupportKit", targets: ["SupportKit"]),
     .library(name: "SupportKitUI", targets: ["SupportKitUI"]),
     .library(name: "SupportKitSettings", targets: ["SupportKitSettings"]),
+    .library(name: "SupportKitMenuBar", targets: ["SupportKitMenuBar"]),
   ],
   targets: [
     .target(name: "SupportKit"),
     .target(name: "SupportKitUI", dependencies: ["SupportKit"]),
     .target(name: "SupportKitSettings", dependencies: ["SupportKit", "SupportKitUI"]),
+    .target(name: "SupportKitMenuBar", dependencies: ["SupportKit"]),
     .testTarget(name: "SupportKitTests", dependencies: ["SupportKit"]),
     .testTarget(name: "SupportKitSettingsTests", dependencies: ["SupportKitSettings"]),
+    .testTarget(name: "SupportKitMenuBarTests", dependencies: ["SupportKitMenuBar"]),
   ]
 )
