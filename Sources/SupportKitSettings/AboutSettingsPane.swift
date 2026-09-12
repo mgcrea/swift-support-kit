@@ -19,6 +19,9 @@ public struct AboutSettingsSection<Extra: View>: View {
   private let app: SupportApp
   private let diagnostics: Diagnostics
   private let showsIcon: Bool
+  private let showsIdentifier: Bool
+  private let debugNotice: LocalizedStringKey?
+  private let copySummary: String?
   private let includesSupport: Bool
   private let preferIssueTracker: Bool
   private let showsHelp: (() -> Void)?
@@ -34,8 +37,23 @@ public struct AboutSettingsSection<Extra: View>: View {
   ///     has caught up. One app in the fleet already pins its version under
   ///     demo mode for exactly that reason; this is the hook it pins through.
   ///   - showsIcon: draw the app icon above the rows. False for a narrow pane.
+  ///   - showsIdentifier: add the running bundle identifier as a row. Off by
+  ///     default because it is noise in an app that ships one bundle id; worth
+  ///     turning on for one that also ships a `.debug` build somebody might be
+  ///     staring at without realising it.
+  ///   - debugNotice: shown, in orange, ONLY when the running bundle id ends in
+  ///     `.debug` — so passing it costs a shipped build nothing. Nil renders a
+  ///     generic sentence; pass a string to name this app's own consequences,
+  ///     which is usually the separate stored data a second bundle id implies.
+  ///   - copySummary: what the copy button puts on the pasteboard. Nil uses
+  ///     `diagnostics.bugReportSummary(for:)`, which deliberately carries the
+  ///     same four facts as the feedback URL and no more — see the rule stated
+  ///     on that method. An app that overrides this is taking ownership of that
+  ///     decision, and should only widen it to facts about the BUILD (a commit,
+  ///     a signing identity), never about the person running it.
   ///   - includesSupport: append `SupportSettingsSection`. Leave it on unless
-  ///     the app puts those rows somewhere else in the same window.
+  ///     the app puts those rows somewhere else in the same window — an app with
+  ///     a dedicated Help pane wants this off, or the rows appear twice.
   ///   - extraRows: whatever this app has that the others do not — a debug-build
   ///     warning, a bundle identifier, a credits list. The escape hatch that
   ///     stops the component being forked.
@@ -43,6 +61,9 @@ public struct AboutSettingsSection<Extra: View>: View {
     app: SupportApp,
     diagnostics: Diagnostics = .current,
     showsIcon: Bool = true,
+    showsIdentifier: Bool = false,
+    debugNotice: LocalizedStringKey? = nil,
+    copySummary: String? = nil,
     includesSupport: Bool = true,
     preferIssueTracker: Bool = false,
     showsHelp: (() -> Void)? = nil,
@@ -51,6 +72,9 @@ public struct AboutSettingsSection<Extra: View>: View {
     self.app = app
     self.diagnostics = diagnostics
     self.showsIcon = showsIcon
+    self.showsIdentifier = showsIdentifier
+    self.debugNotice = debugNotice
+    self.copySummary = copySummary
     self.includesSupport = includesSupport
     self.preferIssueTracker = preferIssueTracker
     self.showsHelp = showsHelp
@@ -67,6 +91,13 @@ public struct AboutSettingsSection<Extra: View>: View {
         .textSelection(.enabled)
       LabeledContent("Model", value: diagnostics.hardware)
         .textSelection(.enabled)
+      if showsIdentifier {
+        LabeledContent("Identifier", value: RunningBundle.identifier)
+          .textSelection(.enabled)
+      }
+      if RunningBundle.isDebug {
+        debugNoticeRow
+      }
       extraRows
     }
 
@@ -101,7 +132,7 @@ public struct AboutSettingsSection<Extra: View>: View {
         Text(diagnostics.appVersion)
           .textSelection(.enabled)
         Button {
-          SupportClipboard.copy(diagnostics.bugReportSummary(for: app))
+          SupportClipboard.copy(copySummary ?? diagnostics.bugReportSummary(for: app))
           copied = true
         } label: {
           Image(systemName: copied ? "checkmark" : "doc.on.doc")
@@ -119,6 +150,43 @@ public struct AboutSettingsSection<Extra: View>: View {
       copied = false
     }
   }
+
+  /// Orange, and only on a `.debug` bundle.
+  ///
+  /// A second bundle identifier means a second everything — its own defaults,
+  /// its own Keychain items, its own stored files — and two menu bar icons that
+  /// look identical while holding different credentials is otherwise a
+  /// confusing afternoon. One app in the fleet wrote this warning for itself
+  /// first; every app that ships a debug build alongside has the same problem.
+  private var debugNoticeRow: some View {
+    Text(debugNotice ?? RunningBundle.genericDebugNotice)
+      .font(.caption)
+      .foregroundStyle(.orange)
+      .fixedSize(horizontal: false, vertical: true)
+  }
+}
+
+/// Bundle facts, read once.
+///
+/// A caseless enum rather than statics on `AboutSettingsSection`, which is
+/// generic over its extra rows — and a generic type cannot hold a static stored
+/// property, so the obvious spelling does not compile.
+private enum RunningBundle {
+  /// Computed, not stored: `LocalizedStringKey` is not `Sendable`, so a static
+  /// stored one is a concurrency error. The same constraint `SettingsPaneGroup`
+  /// records for its missing header field.
+  static var genericDebugNotice: LocalizedStringKey {
+    "A debug build. It has its own bundle identifier, and therefore its own settings and its own stored data."
+  }
+
+  /// The identifier cannot change while the process runs.
+  static let identifier = Bundle.main.bundleIdentifier ?? "—"
+
+  /// The `.debug` suffix is the fleet's convention for the sibling bundle id,
+  /// and it is a property of the RUNNING bundle rather than of the compile —
+  /// `#if DEBUG` would be wrong here, because a Release build installed under
+  /// the debug identifier is exactly the case worth warning about.
+  static let isDebug = identifier.hasSuffix(".debug")
 }
 
 extension AboutSettingsSection where Extra == EmptyView {
@@ -126,6 +194,9 @@ extension AboutSettingsSection where Extra == EmptyView {
     app: SupportApp,
     diagnostics: Diagnostics = .current,
     showsIcon: Bool = true,
+    showsIdentifier: Bool = false,
+    debugNotice: LocalizedStringKey? = nil,
+    copySummary: String? = nil,
     includesSupport: Bool = true,
     preferIssueTracker: Bool = false,
     showsHelp: (() -> Void)? = nil
@@ -134,6 +205,9 @@ extension AboutSettingsSection where Extra == EmptyView {
       app: app,
       diagnostics: diagnostics,
       showsIcon: showsIcon,
+      showsIdentifier: showsIdentifier,
+      debugNotice: debugNotice,
+      copySummary: copySummary,
       includesSupport: includesSupport,
       preferIssueTracker: preferIssueTracker,
       showsHelp: showsHelp,
@@ -151,6 +225,9 @@ public struct AboutSettingsPane<Extra: View>: View {
     app: SupportApp,
     diagnostics: Diagnostics = .current,
     showsIcon: Bool = true,
+    showsIdentifier: Bool = false,
+    debugNotice: LocalizedStringKey? = nil,
+    copySummary: String? = nil,
     includesSupport: Bool = true,
     preferIssueTracker: Bool = false,
     showsHelp: (() -> Void)? = nil,
@@ -160,6 +237,9 @@ public struct AboutSettingsPane<Extra: View>: View {
       app: app,
       diagnostics: diagnostics,
       showsIcon: showsIcon,
+      showsIdentifier: showsIdentifier,
+      debugNotice: debugNotice,
+      copySummary: copySummary,
       includesSupport: includesSupport,
       preferIssueTracker: preferIssueTracker,
       showsHelp: showsHelp,
@@ -180,6 +260,9 @@ extension AboutSettingsPane where Extra == EmptyView {
     app: SupportApp,
     diagnostics: Diagnostics = .current,
     showsIcon: Bool = true,
+    showsIdentifier: Bool = false,
+    debugNotice: LocalizedStringKey? = nil,
+    copySummary: String? = nil,
     includesSupport: Bool = true,
     preferIssueTracker: Bool = false,
     showsHelp: (() -> Void)? = nil
@@ -188,6 +271,9 @@ extension AboutSettingsPane where Extra == EmptyView {
       app: app,
       diagnostics: diagnostics,
       showsIcon: showsIcon,
+      showsIdentifier: showsIdentifier,
+      debugNotice: debugNotice,
+      copySummary: copySummary,
       includesSupport: includesSupport,
       preferIssueTracker: preferIssueTracker,
       showsHelp: showsHelp,
