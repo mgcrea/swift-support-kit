@@ -19,6 +19,7 @@ public struct HelpSettingsPane: View {
   private let app: SupportApp
   private let preferIssueTracker: Bool
   private let includesReviewLink: Bool
+  private let intro: LocalizedStringKey?
   private let showsHelp: (() -> Void)?
 
   /// - Parameters:
@@ -29,6 +30,12 @@ public struct HelpSettingsPane: View {
   ///   - includesReviewLink: show "Rate <App>". Renders nothing anyway when the
   ///     app has no `appStoreID`, which is the case for every app that ships
   ///     outside the store.
+  ///   - intro: the paragraph above the links. Nil renders the standard
+  ///     welcome, which is deliberately the safe claim: it invites bugs, ideas
+  ///     and questions, and says what the links carry. Pass a replacement in an
+  ///     app whose source is public, so it can invite a pull request too — that
+  ///     sentence is NOT in the default, because it would be a false
+  ///     invitation in an app whose tracker is an issues-only repository.
   ///   - showsHelp: the app's existing ⌘/ action. Nil omits the row. Pass the
   ///     identical closure here and to `SupportCommands`, so the two cannot
   ///     open different help.
@@ -36,16 +43,37 @@ public struct HelpSettingsPane: View {
     app: SupportApp,
     preferIssueTracker: Bool = false,
     includesReviewLink: Bool = true,
+    intro: LocalizedStringKey? = nil,
     showsHelp: (() -> Void)? = nil
   ) {
     self.app = app
     self.preferIssueTracker = preferIssueTracker
     self.includesReviewLink = includesReviewLink
+    self.intro = intro
     self.showsHelp = showsHelp
+  }
+
+  /// Says what the two prefilled links carry, which is the question somebody
+  /// asks before pressing one. `SupportApp+URLs` puts the four facts in the
+  /// query string and the issue body precisely so they can be read first; this
+  /// is the sentence that tells the reader to look.
+  private var standardIntro: LocalizedStringKey {
+    """
+    Bugs, ideas and questions are all welcome, and none of them is a bother. \
+    The feedback form and the issue template arrive with your version, macOS, \
+    Mac model and language already filled in, where you can read them before \
+    anything is sent.
+    """
   }
 
   public var body: some View {
     Form {
+      Section {
+        Text(intro ?? standardIntro)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+
       SupportSettingsSection(
         app: app,
         preferIssueTracker: preferIssueTracker,
