@@ -14,13 +14,23 @@ import PackageDescription
 // their settings pane will land, and it will churn. Keeping them apart means a
 // minor bump for a sidebar metric does not re-review the Help menu.
 //
-// The platform floor is macOS 15 / iOS 17 because nothing here needs more —
-// this package builds URLs, reads two sysctls, and touches UserDefaults. The
-// consuming apps sit anywhere from macOS 15.5 to 26.x, and a floor raised to
-// match the newest of them would lock out the oldest for no gain.
+// The platform floor follows the consuming apps, which are now all on macOS 26
+// and iOS 26 — checked target by target, including Cupertino's bridge helper at
+// macOS 14, which links no package product and so does not hold the floor down.
+//
+// It was macOS 15 / iOS 17 on the reasoning that nothing here needs more, which
+// was true of SupportKit and SupportKitUI and stopped being true when
+// SupportKitMenuBar arrived: `.buttonStyle(.glass)` is a macOS 26 API, and a
+// declared floor of 15 meant CI built the package on a runner whose toolchain
+// could not compile it. That job had been failing since 1.2.0 — three releases
+// during which the package's own tests never ran on either runner.
+//
+// Raising the floor is the honest fix rather than availability-guarding the
+// call: no consumer is below 26, so a guard would be dead code protecting
+// nobody.
 let package = Package(
   name: "swift-support-kit",
-  platforms: [.macOS(.v15), .iOS(.v17)],
+  platforms: [.macOS("26.0"), .iOS("26.0")],
   products: [
     .library(name: "SupportKit", targets: ["SupportKit"]),
     .library(name: "SupportKitUI", targets: ["SupportKitUI"]),

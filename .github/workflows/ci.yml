@@ -8,16 +8,19 @@ on:
 jobs:
   test:
     strategy:
-      # Both ends, and a failure on one still runs the other: knowing whether a break is
-      # "only on the floor" or "only on the newest" is most of the diagnosis.
       fail-fast: false
       matrix:
-        # macos-15 is not incidental: it is the package's declared floor, and the point of
-        # testing there is to catch an API newer than the floor allows. Building only on the
-        # newest runner would let a macOS 26 symbol through and break the one consuming app
-        # that still targets 15. macos-latest catches the opposite failure — source that no
-        # longer compiles on the toolchain the consuming apps are actually built with.
-        os: [macos-15, macos-latest]
+        # One runner, because the floor and the newest are the same thing today: every
+        # consuming app is on macOS 26, so the package declares 26 and macos-latest is 26.
+        #
+        # There were two. The floor runner was macos-15 and it existed to catch an API
+        # newer than the floor allowed — which it did, correctly, from 1.2.0 onward: it
+        # failed on SupportKitMenuBar's `.buttonStyle(.glass)`. Nobody was reading it, so
+        # the signal was noise and the test job simply did not run for three releases.
+        #
+        # Put the pinned runner back the day macos-latest moves past 26, and pin it to 26
+        # rather than to whatever the oldest consumer happens to be.
+        os: [macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
