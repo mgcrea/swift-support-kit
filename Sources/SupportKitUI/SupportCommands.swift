@@ -1,4 +1,4 @@
-#if os(macOS)
+#if os(macOS) || os(iOS)
   import SupportKit
   import SwiftUI
 
@@ -8,6 +8,10 @@
   /// `CommandGroup(replacing: .help)` holding a `Button` on ⌘/ that posts a
   /// `NotificationCenter` message, a `Divider`, then outbound `Link`s. This is
   /// that block, with the links no longer written out per app.
+  ///
+  /// Available on iOS because iPadOS has a menu bar too, and canopy's Help menu
+  /// was already unfenced there when it moved onto this type. On an iPhone
+  /// SwiftUI ignores `.commands`, so it costs nothing where there is no menu.
   ///
   /// The help action stays a closure rather than becoming part of the package.
   /// Every app already routes ⌘/ its own way — a notification, a `@State` flag,
@@ -38,7 +42,7 @@
     public var body: some Commands {
       CommandGroup(replacing: .help) {
         if let showHelp {
-          Button("\(app.displayName) Help", action: showHelp)
+          Button(localized("\(app.displayName) Help"), action: showHelp)
             .keyboardShortcut("/", modifiers: .command)
           Divider()
         }
@@ -49,19 +53,19 @@
           feedbackLink
           issueLink
         }
-        Link("\(app.displayName) Support", destination: app.supportURL)
+        Link(localized("\(app.displayName) Support"), destination: app.supportURL)
       }
     }
 
     private var feedbackLink: some View {
-      Link("Send Feedback…", destination: app.feedbackURL(kind: .bug))
+      Link(localized("Send Feedback…"), destination: app.feedbackURL(kind: .bug))
     }
 
     /// `@ViewBuilder` so the nil case contributes nothing at all — an app
     /// without a tracker gets no menu item rather than a disabled one.
     @ViewBuilder private var issueLink: some View {
       if let url = app.issueURL(kind: .bug) {
-        Link("Report an Issue on GitHub", destination: url)
+        Link(localized("Report an Issue on GitHub"), destination: url)
       }
     }
   }

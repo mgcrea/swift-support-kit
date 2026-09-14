@@ -310,7 +310,7 @@
 
         if let whatsNew = footer.whatsNew {
           Divider()
-          Button("What's new in \(whatsNew.version)…", action: whatsNew.run)
+          Button(localized("What's new in \(whatsNew.version)…"), action: whatsNew.run)
             .controlSize(.small)
             .accessibilityIdentifier("menubar.whatsNew")
         }
@@ -343,7 +343,7 @@
         // must not differ. ⌘Q is supplied for the same reason: cupertino was
         // missing both it and ⌘O from a row its own comments describe as the
         // same row the siblings have.
-        Button("Quit") { NSApplication.shared.terminate(nil) }
+        Button(localized("Quit")) { NSApplication.shared.terminate(nil) }
           .keyboardShortcut("q")
           .accessibilityIdentifier("menubar.quit")
       }
@@ -396,8 +396,8 @@
 
     // MARK: - Strings
 
-    private var openTitle: Text { Text("Open \(app.displayName)") }
-    private var aboutTitle: Text { Text("About \(app.displayName)") }
+    private var openTitle: Text { Text(localized("Open \(app.displayName)")) }
+    private var aboutTitle: Text { Text(localized("About \(app.displayName)")) }
   }
 
   // MARK: - The common case

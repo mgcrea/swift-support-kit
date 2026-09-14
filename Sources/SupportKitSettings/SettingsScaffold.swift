@@ -61,7 +61,12 @@ public struct SettingsScaffold<Pane: SettingsPane, Detail: View>: View {
   ///   - presentation: defaults to `.automatic`.
   ///   - metrics: sidebar width. Defaults to the fleet's widest.
   ///   - rootTitle: the navigation title in the collapsed layouts. The window
-  ///     layouts do not use it — the window already has a title.
+  ///     layouts do not use it — the window already has a title. The default is
+  ///     this package's "Settings", already translated from its own catalog and
+  ///     handed over as a key: a key the app's catalog does not hold draws
+  ///     itself, so "Réglages" arrives as "Réglages". A literal default would be
+  ///     looked up in the app's catalog instead, and stay English in an app that
+  ///     happens not to carry that key.
   ///   - embeddedPath: required by `.embedded` and ignored otherwise, so a
   ///     staged run can push without a driver to tap.
   ///   - onPaneChange: called after a real selection. dev-pulse asserts on this
@@ -74,7 +79,7 @@ public struct SettingsScaffold<Pane: SettingsPane, Detail: View>: View {
     staged: Pane? = nil,
     presentation: SettingsPresentation = .automatic,
     metrics: SettingsSidebarMetrics = .default,
-    rootTitle: LocalizedStringKey = "Settings",
+    rootTitle: LocalizedStringKey = LocalizedStringKey(localized("Settings")),
     embeddedPath: Binding<[Pane]>? = nil,
     onPaneChange: ((Pane) -> Void)? = nil,
     @ViewBuilder detail: @escaping (Pane) -> Detail

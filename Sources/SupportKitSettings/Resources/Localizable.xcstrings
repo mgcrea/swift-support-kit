@@ -1,0 +1,138 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%@ Help": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aide de %@"
+          }
+        }
+      }
+    },
+    "%@ Support": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistance %@"
+          }
+        }
+      }
+    },
+    "A debug build. It has its own bundle identifier, and therefore its own settings and its own stored data.": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une version de débogage. Elle a son propre identifiant de bundle, et donc ses propres réglages et ses propres données enregistrées."
+          }
+        }
+      }
+    },
+    "Bugs, ideas and questions are all welcome, and none of them is a bother. The feedback form and the issue template arrive with your version, macOS, Mac model and language already filled in, where you can read them before anything is sent.": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bugs, idées et questions sont tous les bienvenus, et aucun ne dérange. Le formulaire et le modèle de ticket arrivent déjà remplis avec la version de l’application, celle de macOS, le modèle de Mac et la langue, et vous pouvez tout relire avant l’envoi."
+          }
+        }
+      }
+    },
+    "Copy version and system details for a bug report": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copier la version et les détails du système pour un rapport de bug"
+          }
+        }
+      }
+    },
+    "Identifier": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Identifiant"
+          }
+        }
+      }
+    },
+    "Model": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modèle"
+          }
+        }
+      }
+    },
+    "Rate %@": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noter %@"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réglages"
+          }
+        }
+      }
+    },
+    "System": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Système"
+          }
+        }
+      }
+    },
+    "Version": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

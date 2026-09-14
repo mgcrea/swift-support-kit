@@ -22,13 +22,18 @@ import SwiftUI
 public struct FeedbackLink: View {
   private let app: SupportApp
   private let kind: FeedbackKind
-  private let title: String
+  private let title: LocalizedStringKey?
   private let systemImage: String
 
+  /// - Parameter title: nil draws this package's own "Send Feedback", from its
+  ///   catalog. A replacement is a `LocalizedStringKey`, resolved in the app's
+  ///   catalog. It was a `String` until 1.7.0, which bound `Label`'s verbatim
+  ///   overload: no lookup anywhere, so the row was English in every language
+  ///   and no catalog could reach it.
   public init(
     app: SupportApp,
     kind: FeedbackKind = .bug,
-    title: String = "Send Feedback",
+    title: LocalizedStringKey? = nil,
     systemImage: String = "bubble.left.and.exclamationmark.bubble.right"
   ) {
     self.app = app
@@ -39,7 +44,11 @@ public struct FeedbackLink: View {
 
   public var body: some View {
     Link(destination: app.feedbackURL(kind: kind)) {
-      Label(title, systemImage: systemImage)
+      if let title {
+        Label(title, systemImage: systemImage)
+      } else {
+        Label(localized("Send Feedback"), systemImage: systemImage)
+      }
     }
   }
 }
@@ -49,13 +58,15 @@ public struct FeedbackLink: View {
 public struct IssueTrackerLink: View {
   private let app: SupportApp
   private let kind: FeedbackKind
-  private let title: String
+  private let title: LocalizedStringKey?
   private let systemImage: String
 
+  /// - Parameter title: nil draws this package's own "Report an Issue". See
+  ///   `FeedbackLink.init` for why it is no longer a `String`.
   public init(
     app: SupportApp,
     kind: FeedbackKind = .bug,
-    title: String = "Report an Issue",
+    title: LocalizedStringKey? = nil,
     systemImage: String = "exclamationmark.triangle"
   ) {
     self.app = app
@@ -67,7 +78,11 @@ public struct IssueTrackerLink: View {
   public var body: some View {
     if let url = app.issueURL(kind: kind) {
       Link(destination: url) {
-        Label(title, systemImage: systemImage)
+        if let title {
+          Label(title, systemImage: systemImage)
+        } else {
+          Label(localized("Report an Issue"), systemImage: systemImage)
+        }
       }
     }
   }

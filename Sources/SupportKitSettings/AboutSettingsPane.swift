@@ -87,12 +87,12 @@ public struct AboutSettingsSection<Extra: View>: View {
         identityRow
       }
       versionRow
-      LabeledContent("System", value: diagnostics.osVersion)
+      LabeledContent(localized("System"), value: diagnostics.osVersion)
         .textSelection(.enabled)
-      LabeledContent("Model", value: diagnostics.hardware)
+      LabeledContent(localized("Model"), value: diagnostics.hardware)
         .textSelection(.enabled)
       if showsIdentifier {
-        LabeledContent("Identifier", value: RunningBundle.identifier)
+        LabeledContent(localized("Identifier"), value: RunningBundle.identifier)
           .textSelection(.enabled)
       }
       if RunningBundle.isDebug {
@@ -138,11 +138,11 @@ public struct AboutSettingsSection<Extra: View>: View {
           Image(systemName: copied ? "checkmark" : "doc.on.doc")
         }
         .buttonStyle(.borderless)
-        .help("Copy version and system details for a bug report")
-        .accessibilityLabel("Copy version and system details for a bug report")
+        .help(localized("Copy version and system details for a bug report"))
+        .accessibilityLabel(localized("Copy version and system details for a bug report"))
       }
     } label: {
-      Text("Version")
+      Text(localized("Version"))
     }
     .task(id: copied) {
       guard copied else { return }
@@ -159,10 +159,16 @@ public struct AboutSettingsSection<Extra: View>: View {
   /// confusing afternoon. One app in the fleet wrote this warning for itself
   /// first; every app that ships a debug build alongside has the same problem.
   private var debugNoticeRow: some View {
-    Text(debugNotice ?? RunningBundle.genericDebugNotice)
-      .font(.caption)
-      .foregroundStyle(.orange)
-      .fixedSize(horizontal: false, vertical: true)
+    Group {
+      if let debugNotice {
+        Text(debugNotice)
+      } else {
+        Text(RunningBundle.genericDebugNotice)
+      }
+    }
+    .font(.caption)
+    .foregroundStyle(.orange)
+    .fixedSize(horizontal: false, vertical: true)
   }
 }
 
@@ -172,11 +178,14 @@ public struct AboutSettingsSection<Extra: View>: View {
 /// generic over its extra rows — and a generic type cannot hold a static stored
 /// property, so the obvious spelling does not compile.
 private enum RunningBundle {
-  /// Computed, not stored: `LocalizedStringKey` is not `Sendable`, so a static
-  /// stored one is a concurrency error. The same constraint `SettingsPaneGroup`
-  /// records for its missing header field.
-  static var genericDebugNotice: LocalizedStringKey {
-    "A debug build. It has its own bundle identifier, and therefore its own settings and its own stored data."
+  /// This package's sentence, so it comes from this package's catalog — a
+  /// `debugNotice` the app passes is a key into the app's own. Computed rather
+  /// than stored so the lookup runs when the row is drawn, not when the enum is
+  /// first touched.
+  static var genericDebugNotice: String {
+    localized(
+      "A debug build. It has its own bundle identifier, and therefore its own settings and its own stored data."
+    )
   }
 
   /// The identifier cannot change while the process runs.

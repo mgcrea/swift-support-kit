@@ -57,21 +57,32 @@ public struct HelpSettingsPane: View {
   /// asks before pressing one. `SupportApp+URLs` puts the four facts in the
   /// query string and the issue body precisely so they can be read first; this
   /// is the sentence that tells the reader to look.
-  private var standardIntro: LocalizedStringKey {
-    """
-    Bugs, ideas and questions are all welcome, and none of them is a bother. \
-    The feedback form and the issue template arrive with your version, macOS, \
-    Mac model and language already filled in, where you can read them before \
-    anything is sent.
-    """
+  ///
+  /// A `String` from this package's catalog, where `intro` is a key into the
+  /// app's: the default is the package's sentence, a replacement is the app's.
+  private var standardIntro: String {
+    localized(
+      """
+      Bugs, ideas and questions are all welcome, and none of them is a bother. \
+      The feedback form and the issue template arrive with your version, macOS, \
+      Mac model and language already filled in, where you can read them before \
+      anything is sent.
+      """
+    )
   }
 
   public var body: some View {
     Form {
       Section {
-        Text(intro ?? standardIntro)
-          .foregroundStyle(.secondary)
-          .fixedSize(horizontal: false, vertical: true)
+        Group {
+          if let intro {
+            Text(intro)
+          } else {
+            Text(standardIntro)
+          }
+        }
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
       }
 
       SupportSettingsSection(

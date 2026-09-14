@@ -28,8 +28,24 @@ import PackageDescription
 // Raising the floor is the honest fix rather than availability-guarding the
 // call: no consumer is below 26, so a guard would be dead code protecting
 // nobody.
+//
+// `defaultLocalization` is what gives `Bundle.module` a localization table at
+// all, and it names the language the source is written in. Each of the three UI
+// targets owns a `Resources/Localizable.xcstrings`, because a bare `Text("…")`
+// inside a package resolves against `Bundle.main` — the host app's bundle — finds
+// no entry there, and draws the English key to a French user with no build error
+// and no crash. Two apps in the fleet are bilingual, and that is the reason one
+// of them rebuilt the Help menu and the support rows by hand rather than link
+// them. Every string these targets draw goes through `localized(_:)`, which names
+// `.module`, and `SupportKitLocalizationTests` holds the catalogs to the call
+// sites.
+//
+// `SupportKit` has no catalog on purpose. Its English — the issue template, the
+// clipboard summary, the mail body — is read by the maintainer, not shown in the
+// app.
 let package = Package(
   name: "swift-support-kit",
+  defaultLocalization: "en",
   platforms: [.macOS("26.0"), .iOS("26.0")],
   products: [
     .library(name: "SupportKit", targets: ["SupportKit"]),
@@ -39,11 +55,26 @@ let package = Package(
   ],
   targets: [
     .target(name: "SupportKit"),
-    .target(name: "SupportKitUI", dependencies: ["SupportKit"]),
-    .target(name: "SupportKitSettings", dependencies: ["SupportKit", "SupportKitUI"]),
-    .target(name: "SupportKitMenuBar", dependencies: ["SupportKit"]),
+    .target(
+      name: "SupportKitUI",
+      dependencies: ["SupportKit"],
+      resources: [.process("Resources")]
+    ),
+    .target(
+      name: "SupportKitSettings",
+      dependencies: ["SupportKit", "SupportKitUI"],
+      resources: [.process("Resources")]
+    ),
+    .target(
+      name: "SupportKitMenuBar",
+      dependencies: ["SupportKit"],
+      resources: [.process("Resources")]
+    ),
     .testTarget(name: "SupportKitTests", dependencies: ["SupportKit"]),
     .testTarget(name: "SupportKitSettingsTests", dependencies: ["SupportKitSettings"]),
     .testTarget(name: "SupportKitMenuBarTests", dependencies: ["SupportKitMenuBar"]),
+    // Depends on no module: it reads the sources and the catalogs off disk, so a
+    // lookup that happens to resolve at runtime for the wrong reason cannot fool it.
+    .testTarget(name: "SupportKitLocalizationTests"),
   ]
 )

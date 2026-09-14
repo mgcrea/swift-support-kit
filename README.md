@@ -1,7 +1,7 @@
 # swift-support-kit
 
 [![swift](https://img.shields.io/badge/swift-6.0-orange.svg)](https://swift.org)
-[![platforms](https://img.shields.io/badge/platforms-macOS%2015%20%7C%20iOS%2017-lightgrey.svg)](#requirements)
+[![platforms](https://img.shields.io/badge/platforms-macOS%2026%20%7C%20iOS%2026-lightgrey.svg)](#requirements)
 [![license](https://img.shields.io/github/license/mgcrea/swift-support-kit.svg)](./LICENSE)
 
 Feedback, support links and App Store rating prompts for Mac and iOS apps — **without the app
@@ -68,7 +68,7 @@ anything in this list. A test asserts it.
 ## Install
 
 ```swift
-.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.2.0"))
+.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.7.0"))
 ```
 
 Four products. `SupportKit` is Foundation-only, so it unit-tests without a host app and imports
@@ -176,9 +176,9 @@ AboutSettingsSection(app: Support.app)           // just the rows, for an existi
 Version and build from `Diagnostics`, the machine, a copy button that writes
 `Diagnostics.bugReportSummary` to the pasteboard, and `SupportSettingsSection` beneath it.
 
-The support rows matter most on **iOS**, where `SupportCommands` cannot exist — there is no Help
-menu — so without them the feedback form, the tracker and the support page are reachable from
-nowhere at all.
+The support rows matter most on an **iPhone**, which has no Help menu for `SupportCommands` to
+fill — without them the feedback form, the tracker and the support page are reachable from
+nowhere at all. An iPad with a menu bar gets both.
 
 Pass `diagnostics:` to pin the version for a screenshot run. A real version number renders into
 every settings capture, which churns a golden gate on each release and can publish a version to
@@ -312,15 +312,36 @@ FeedbackLink(app: .silhouette)
 
 For the same reason there is no shared `HelpView`. Apps have bespoke help sheets worth keeping.
 
+## Localization
+
+The package ships its own strings in English and French, one String Catalog per UI target.
+Which language shows follows **the app's** language, not the Mac's: an English-only app on a
+French Mac stays English throughout, and a bilingual app gets French rows beside its own French
+screens.
+
+Two kinds of text, two catalogs:
+
+- **What the package names** — "Send Feedback…", "Version", "Quit" — lives in the package's
+  catalog and is looked up with `bundle: .module`. The app has nothing to add.
+- **What the app names** — pane titles, `intro:`, `debugNotice:`, a menu bar verb — is a
+  `LocalizedStringKey`, resolved in the app's catalog like any other string the app writes.
+
+Every lookup goes through `localized(_:)` rather than a bare `Text("…")`, because a literal inside
+a package resolves against `Bundle.main` and silently draws English. That hides the literal from
+Xcode's extractor, so `SupportKitLocalizationTests` does the extractor's job: every call site has
+an entry, every entry has a call site, French is complete, no literal reaches SwiftUI unwrapped,
+and no entry generates a Swift symbol. That last one is not tidiness — Xcode 26 turns "Send
+Feedback" and "Send Feedback…" into the same symbol, which breaks the build of every app linking
+the module while `swift build` stays green.
+
+Adding a string means adding its French in the same commit.
+
 ## Requirements
 
-macOS 15+ / iOS 17+, Swift 6. The floor is low on purpose: this package builds URLs, reads two
-sysctls and touches `UserDefaults`, so nothing in it needs a newer OS, and raising the floor to
-match the newest consuming app would lock out the oldest for no gain.
-
-`SupportKitMenuBar` is the exception: macOS-only, and its `MenuBarPanel` is `@available(macOS
-26, *)` because it leans on the glass button styles. It is a separate product so that floor
-lands only on the apps that ask for it.
+macOS 26+ / iOS 26+, Swift 6. The floor follows the consuming apps, every one of which is on 26.
+It was macOS 15 / iOS 17 until 1.6.0, on the reasoning that nothing here needed more — which
+stopped being true when `SupportKitMenuBar` arrived and leaned on the macOS 26 glass button
+styles.
 
 ## Notes for anyone reading the source
 

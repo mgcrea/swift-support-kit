@@ -4,11 +4,10 @@ import SwiftUI
 
 /// The routes out of the app, for the platform that has no Help menu.
 ///
-/// `SupportCommands` is `#if os(macOS)`, and that is correct — there is no Help
-/// menu on a phone to put it in. The consequence is not correct at all: on iOS
-/// the feedback form, the tracker and the support page are currently reachable
-/// from nowhere. Six of the twelve apps have an iOS surface, and on all six
-/// everything this package does is invisible today.
+/// `SupportCommands` reaches the Mac and the iPad, the two places with a menu
+/// bar. A phone has no Help menu to put it in, so without this section the
+/// feedback form, the tracker and the support page are reachable from nowhere on
+/// an iPhone. Six of the twelve apps have an iOS surface.
 ///
 /// So this is not decoration on the About pane. It is the thing that makes an
 /// About pane load-bearing rather than a version readout.
@@ -44,7 +43,7 @@ public struct SupportSettingsSection: View {
     Section {
       if let showsHelp {
         Button(action: showsHelp) {
-          Label("\(app.displayName) Help", systemImage: "questionmark.circle")
+          Label(localized("\(app.displayName) Help"), systemImage: "questionmark.circle")
         }
       }
       if preferIssueTracker {
@@ -55,11 +54,11 @@ public struct SupportSettingsSection: View {
         IssueTrackerLink(app: app)
       }
       Link(destination: app.supportURL) {
-        Label("\(app.displayName) Support", systemImage: "lifepreserver")
+        Label(localized("\(app.displayName) Support"), systemImage: "lifepreserver")
       }
       if includesReviewLink, let review = app.appStoreReviewURL {
         Link(destination: review) {
-          Label("Rate \(app.displayName)", systemImage: "star")
+          Label(localized("Rate \(app.displayName)"), systemImage: "star")
         }
       }
     }

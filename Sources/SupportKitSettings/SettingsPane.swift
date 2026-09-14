@@ -41,11 +41,11 @@ where RawValue == String, AllCases: RandomAccessCollection {
   ///
   /// `LocalizedStringKey`, **not** `String`. Handing SwiftUI a `String` hands
   /// it a finished sentence rather than a catalog key — which is English, in
-  /// French, with nothing failing to say so. Two of the consuming apps ship
-  /// bilingual with a `.xcstrings` catalog and a build gate that checks it;
-  /// the other ten pass literals and get the same behaviour for free. This
-  /// requirement is the one reason the protocol cannot live in `SupportKit`
-  /// beside the rest of the Foundation-only code.
+  /// French, with nothing failing to say so. The key resolves in the **app's**
+  /// catalog, which is right: the app names its panes. The strings this package
+  /// names itself are the opposite case and live in the package's own catalog —
+  /// see `localized(_:)`. This requirement is the one reason the protocol cannot
+  /// live in `SupportKit` beside the rest of the Foundation-only code.
   var title: LocalizedStringKey { get }
 
   /// The SF Symbol for the sidebar row.

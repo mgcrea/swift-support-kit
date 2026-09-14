@@ -63,10 +63,23 @@
     }
 
     // MARK: - The routes the fleet already shares
+    //
+    // These two titles are this package's own words, so they are translated
+    // here from its catalog and handed over as a key that already is the
+    // translation. `title` stays a `LocalizedStringKey` for the app's own verbs,
+    // which resolve in the app's catalog; a key that catalog does not hold draws
+    // itself. A literal here would be looked up in the app's catalog and stay
+    // English wherever the app does not happen to carry "Settings".
 
     /// ⌘, — the gear. Every panel has one.
     public static func settings(_ run: @escaping () -> Void) -> Self {
-      Self(id: "settings", title: "Settings", systemImage: "gearshape", shortcut: ",", run: run)
+      Self(
+        id: "settings",
+        title: LocalizedStringKey(localized("Settings")),
+        systemImage: "gearshape",
+        shortcut: ",",
+        run: run
+      )
     }
 
     /// ⌘L — the call log. Bastion and cupertino both argued their way to this
@@ -75,7 +88,12 @@
     /// answer.
     public static func logs(_ run: @escaping () -> Void) -> Self {
       Self(
-        id: "logs", title: "Logs", systemImage: "list.bullet.rectangle", shortcut: "l", run: run)
+        id: "logs",
+        title: LocalizedStringKey(localized("Logs")),
+        systemImage: "list.bullet.rectangle",
+        shortcut: "l",
+        run: run
+      )
     }
 
     /// A verb: something this panel *does*, which stacks above the action row
