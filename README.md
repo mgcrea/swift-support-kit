@@ -166,6 +166,38 @@ activation policy. The contract stops at the write.
 `"settingsPane"` must pass `legacyKeys: ["settingsPane"]` or every user's pane silently resets.
 The migration runs once, only when the canonical key is empty, and removes the old key.
 
+### Launch at login
+
+macOS only. One `LoginItem` per app beside its `SupportApp`, one call at launch, and the section
+as the **first** thing in the General pane:
+
+```swift
+enum Support {
+    static let loginItem = LoginItem(app: app)       // cupertino: legacyDesiredKeys: ["launchAtLoginDesired"]
+}
+
+// applicationDidFinishLaunching, after any screenshot-mode early return
+Support.loginItem.healIfNeeded()
+
+Form {
+    LaunchAtLoginSection(Support.loginItem, detail: "Starts on demand anyway; this removes the wait.")
+    // …the rest of General
+}
+```
+
+It keeps two facts apart: what the user **asked for** (`<slug>.launchAtLogin`) and what
+`SMAppService` **reports**. A registration is a bundle at a path, and a Sparkle update replaces
+the bundle — with only the service's answer, the box is quietly unticked after an update and the
+app has stopped launching at login. `healIfNeeded()` re-registers once when the two disagree. An
+item that was already enabled before the app adopted this is taken as asked for, so existing users
+are covered from their next update.
+
+The section draws what the service reports, never the last request. It says when macOS is waiting
+on the user's approval, and it refuses to register a translocated copy or one outside an
+Applications folder, which would leave a login item pointing at a path that is about to vanish.
+Under a screenshot capture pass `service: PinnedLoginItemService()` and an `/Applications`
+`bundleURL`, so the golden shows neither the capturing Mac's registration nor the location warning.
+
 ### About
 
 ```swift

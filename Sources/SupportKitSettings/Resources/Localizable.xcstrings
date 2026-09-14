@@ -37,6 +37,30 @@
         }
       }
     },
+    "A login item remembers where the app was, and this copy is outside an Applications folder. Move it there to launch it at login.": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un élément d'ouverture retient l'emplacement de l'app, et cette copie est hors d'un dossier Applications. Déplacez-la là pour l'ouvrir à l'ouverture de session."
+          }
+        }
+      }
+    },
+    "Allow it in Login Items & Extensions to launch at login.": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autorisez-la dans Ouverture et extensions pour l'ouvrir à l'ouverture de session."
+          }
+        }
+      }
+    },
     "Bugs, ideas and questions are all welcome, and none of them is a bother. The feedback form and the issue template arrive with your version, macOS, Mac model and language already filled in, where you can read them before anything is sent.": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -73,6 +97,18 @@
         }
       }
     },
+    "Launch at login": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir à l'ouverture de session"
+          }
+        }
+      }
+    },
     "Model": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -81,6 +117,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Modèle"
+          }
+        }
+      }
+    },
+    "Open System Settings…": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir Réglages Système…"
           }
         }
       }
@@ -109,6 +157,18 @@
         }
       }
     },
+    "Startup": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Démarrage"
+          }
+        }
+      }
+    },
     "System": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -129,6 +189,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Version"
+          }
+        }
+      }
+    },
+    "macOS is running this copy from a temporary location that will be gone next time. Move the app to your Applications folder and open it from there to launch it at login.": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS exécute cette copie depuis un emplacement temporaire qui aura disparu la prochaine fois. Déplacez l'app dans votre dossier Applications et ouvrez-la depuis là pour l'ouvrir à l'ouverture de session."
           }
         }
       }
