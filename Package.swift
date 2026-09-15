@@ -1,7 +1,7 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
-// Three products, deliberately split.
+// Five products, deliberately split.
 //
 // `SupportKit` is Foundation-only, so it can be unit-tested without a host app
 // and imported from a non-UI module. `SupportKitUI` is the SwiftUI surface. An
@@ -13,6 +13,11 @@ import PackageDescription
 // reason to change again; the scaffold is where twelve apps' disagreements about
 // their settings pane will land, and it will churn. Keeping them apart means a
 // minor bump for a sidebar metric does not re-review the Help menu.
+//
+// `SupportKitMenuBar` and `SupportKitToolbar` are macOS-only chrome that only
+// some apps draw. The toolbar module is also the one place the package imposes
+// glass, for the reason documented on `ToolbarCaptionLabel`, and an app that
+// links the Help menu should inherit neither.
 //
 // The platform floor follows the consuming apps, which are now all on macOS 26
 // and iOS 26 — checked target by target, including Cupertino's bridge helper at
@@ -52,6 +57,7 @@ let package = Package(
     .library(name: "SupportKitUI", targets: ["SupportKitUI"]),
     .library(name: "SupportKitSettings", targets: ["SupportKitSettings"]),
     .library(name: "SupportKitMenuBar", targets: ["SupportKitMenuBar"]),
+    .library(name: "SupportKitToolbar", targets: ["SupportKitToolbar"]),
   ],
   targets: [
     .target(name: "SupportKit"),
@@ -70,9 +76,13 @@ let package = Package(
       dependencies: ["SupportKit"],
       resources: [.process("Resources")]
     ),
+    // No catalog: every word it draws is the app's, handed over as a key or as
+    // data, so there is nothing for `SupportKitLocalizationTests` to hold.
+    .target(name: "SupportKitToolbar"),
     .testTarget(name: "SupportKitTests", dependencies: ["SupportKit"]),
     .testTarget(name: "SupportKitSettingsTests", dependencies: ["SupportKitSettings"]),
     .testTarget(name: "SupportKitMenuBarTests", dependencies: ["SupportKitMenuBar"]),
+    .testTarget(name: "SupportKitToolbarTests", dependencies: ["SupportKitToolbar"]),
     // Depends on no module: it reads the sources and the catalogs off disk, so a
     // lookup that happens to resolve at runtime for the wrong reason cannot fool it.
     .testTarget(name: "SupportKitLocalizationTests"),

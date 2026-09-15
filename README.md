@@ -68,13 +68,15 @@ anything in this list. A test asserts it.
 ## Install
 
 ```swift
-.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.7.0"))
+.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.9.0"))
 ```
 
-Four products. `SupportKit` is Foundation-only, so it unit-tests without a host app and imports
+Five products. `SupportKit` is Foundation-only, so it unit-tests without a host app and imports
 from non-UI modules. `SupportKitUI` adds the SwiftUI surface. `SupportKitSettings` adds the
 settings scaffold, kept separate because it is the part that will churn. `SupportKitMenuBar`
-adds the menu bar panel, which is macOS-only and needs a newer floor than the rest.
+adds the menu bar panel, which is macOS-only. `SupportKitToolbar` adds the two-line toolbar
+controls, also macOS-only, and kept apart because it is the one module that draws glass — see
+[Styling](#styling).
 
 ## The Help menu
 
@@ -307,6 +309,60 @@ at layout time and is not reactive to a display change; `MenuBarExtra` content i
 rebuilt on every open, so the only window it can be wrong in is a display change *while the
 panel is open*.
 
+## Toolbar caption controls
+
+A toolbar control that names a setting over its value — "Model" above "Parakeet TDT v3" — with a
+glyph beside it, opening a popover or a menu.
+
+```swift
+import SupportKitToolbar
+
+.toolbar {
+    ToolbarCaptionItem(placement: .primaryAction) {
+        ToolbarCaptionButton(
+            "Model",
+            value: engine.current?.displayName,
+            placeholder: "Choose a model",
+            systemImage: "cube.box",
+            isPresented: $isPickerPresented
+        ) {
+            ModelPicker()
+        }
+        .help("Choose the model the next transcription uses")
+    }
+}
+```
+
+`ToolbarCaptionMenu` draws the same label over menu items instead of a popover. Reach for the
+popover when a row needs more than a name — a summary, a download size, or a slider, which a menu
+dismisses on the first drag.
+
+### Why it exists
+
+Five controls in three apps drew this label by hand. Cadence's broke on macOS 27, and the other
+four are built the same way. The toolbar there wraps each item in a glass capsule one control row
+tall and clips what does not fit, so the value lost its lower half and its last characters. The
+binary was built against the 26.5 SDK and drew correctly on 26: the toolbar changed underneath it,
+nothing was relinked.
+
+The controls draw their own capsule, and `ToolbarCaptionItem` hides the toolbar's shared
+background with `sharedBackgroundVisibility(.hidden)`. That modifier belongs to the toolbar item,
+not the view inside it, so no control can apply it to itself. The wrapper is how a call site
+cannot forget it — and a call site that forgot would look right on 26 and ship clipped on 27.
+
+### Menus
+
+Contour's toolbar menus hold a single `Text` with a newline in an `AttributedString`, on the
+grounds that a toolbar `Menu` flattened a stacked label to its first `Text`. On macOS 27 it is
+that workaround that flattens: it draws the caption and an ellipsis. A button-styled menu drawing
+its own glass keeps the stacked label whole, and that is what `ToolbarCaptionMenu` is.
+
+### Dimming
+
+A plain button style leaves a custom label bright in an inactive window while the system items
+beside it dim. The label steps its text down a level when its window is inactive or the control is
+disabled, so it dims with its neighbours.
+
 ## Rating prompts
 
 Wrapping `requestReview` in the two rules that decide *who* gets asked:
@@ -343,6 +399,11 @@ FeedbackLink(app: .silhouette)
 ```
 
 For the same reason there is no shared `HelpView`. Apps have bespoke help sheets worth keeping.
+
+The toolbar caption controls are the exception, on purpose. Their glass is not a look laid over a
+bare control: it is the capsule the toolbar would have drawn, replaced because the toolbar's own
+clips a two-line label on macOS 27. Drawn bare, a caption control would be a label with no
+control around it. See [Toolbar caption controls](#toolbar-caption-controls).
 
 ## Localization
 
