@@ -85,6 +85,30 @@
         }
       }
     },
+    "Earlier releases": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versions précédentes"
+          }
+        }
+      }
+    },
+    "Full changelog": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Historique complet des versions"
+          }
+        }
+      }
+    },
     "Identifier": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -181,6 +205,18 @@
         }
       }
     },
+    "Unreleased": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non publiée"
+          }
+        }
+      }
+    },
     "Version": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -193,6 +229,66 @@
         }
       }
     },
+    "added": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ajouté"
+          }
+        }
+      }
+    },
+    "changed": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "modifié"
+          }
+        }
+      }
+    },
+    "deprecated": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "obsolète"
+          }
+        }
+      }
+    },
+    "fixed": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "corrigé"
+          }
+        }
+      }
+    },
+    "installed": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "installée"
+          }
+        }
+      }
+    },
     "macOS is running this copy from a temporary location that will be gone next time. Move the app to your Applications folder and open it from there to launch it at login.": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -201,6 +297,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "macOS exécute cette copie depuis un emplacement temporaire qui aura disparu la prochaine fois. Déplacez l'app dans votre dossier Applications et ouvrez-la depuis là pour l'ouvrir à l'ouverture de session."
+          }
+        }
+      }
+    },
+    "new": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nouvelle"
+          }
+        }
+      }
+    },
+    "not in any build": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dans aucune version"
+          }
+        }
+      }
+    },
+    "removed": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "supprimé"
+          }
+        }
+      }
+    },
+    "security": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sécurité"
           }
         }
       }
