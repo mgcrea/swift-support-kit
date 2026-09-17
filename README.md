@@ -309,6 +309,30 @@ at layout time and is not reactive to a display change; `MenuBarExtra` content i
 rebuilt on every open, so the only window it can be wrong in is a display change *while the
 panel is open*.
 
+### Rows in the body
+
+The body is the app's own, but a row that goes somewhere is drawn the same way everywhere:
+
+```swift
+MenuBarRow(help: "Show \(session.name) in Armada") {
+    MenuBarPanelWindow.dismiss()
+    MainWindowRoute.shared.open(session)
+} label: {
+    Text(session.name)
+} accessory: {
+    FocusButton(session)  // optional, and a sibling of the row's button, never inside it
+}
+```
+
+It carries a hover fill, because `pointerStyle(.link)` does not show inside a `MenuBarExtra`
+panel and a row with only a press flash reads as dead. `help` is the tooltip and the VoiceOver
+hint.
+
+`MenuBarPanelWindow.dismiss()` exists because the panel closes only when the app resigns
+active, and opening one of the app's own windows never makes it resign. Call it **before**
+opening the window: it finds the panel as the key window that cannot become main, and once the
+new window is key there is nothing left for it to find.
+
 ## Toolbar caption controls
 
 A toolbar control that names a setting over its value — "Model" above "Parakeet TDT v3" — with a
