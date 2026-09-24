@@ -47,6 +47,16 @@ public enum SettingsPresentation: Sendable {
 public struct SettingsScaffold<Pane: SettingsPane, Detail: View>: View {
   @AppStorage private var storedRawValue: String
 
+  #if !os(macOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+  #endif
+
+  /// The pane pushed while the split view is collapsed to one column, `nil` on
+  /// the root list. Not the stored selection: a collapsed split view with a
+  /// selection shows its detail, so a stored one would open every sheet on the
+  /// last pane instead of the list, and Back could never leave it.
+  @State private var collapsedSelection: Pane?
+
   private let staged: Pane?
   private let presentation: SettingsPresentation
   private let metrics: SettingsSidebarMetrics
@@ -117,15 +127,31 @@ public struct SettingsScaffold<Pane: SettingsPane, Detail: View>: View {
   /// screenshot needed. The sibling bug has already been seen in this fleet
   /// with window frames: a capture run wrote the pinned size back out under the
   /// key the real window reads, and left every window that size.
+  ///
+  /// **Collapsed, the selection is `collapsedSelection` instead.** There `nil` is
+  /// the root list, which Back asks for, so it is kept; a pane picked is still
+  /// stored, for the layouts that show one from the start.
   private var selectionBinding: Binding<Pane?> {
     Binding(
-      get: { resolved },
+      get: { isCollapsed ? staged ?? collapsedSelection : resolved },
       set: { newValue in
-        guard staged == nil, let newValue else { return }
+        guard staged == nil else { return }
+        if isCollapsed { collapsedSelection = newValue }
+        guard let newValue else { return }
         storedRawValue = newValue.rawValue
         onPaneChange?(newValue)
       }
     )
+  }
+
+  /// Whether the split view shows one column at a time: `.standalone` in a
+  /// compact width, an iPhone's sheet or a narrow iPad window.
+  private var isCollapsed: Bool {
+    #if os(macOS)
+      return false
+    #else
+      return effectivePresentation == .standalone && horizontalSizeClass == .compact
+    #endif
   }
 
   private var effectivePresentation: SettingsPresentation {
