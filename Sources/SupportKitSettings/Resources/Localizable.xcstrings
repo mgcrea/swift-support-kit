@@ -49,6 +49,18 @@
         }
       }
     },
+    "A one-time purchase. No subscription.": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un achat unique, sans abonnement."
+          }
+        }
+      }
+    },
     "Allow it in Login Items & Extensions to launch at login.": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -61,6 +73,18 @@
         }
       }
     },
+    "Always free": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toujours gratuit"
+          }
+        }
+      }
+    },
     "Bugs, ideas and questions are all welcome, and none of them is a bother. The feedback form and the issue template arrive with your version, macOS, Mac model and language already filled in, where you can read them before anything is sent.": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -69,6 +93,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bugs, idées et questions sont tous les bienvenus, et aucun ne dérange. Le formulaire et le modèle de ticket arrivent déjà remplis avec la version de l’application, celle de macOS, le modèle de Mac et la langue, et vous pouvez tout relire avant l’envoi."
+          }
+        }
+      }
+    },
+    "Buy for %@": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acheter pour %@"
+          }
+        }
+      }
+    },
+    "Checking your purchase…": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérification de votre achat…"
           }
         }
       }
@@ -97,6 +145,18 @@
         }
       }
     },
+    "Everything is unlocked. Thank you for supporting %@.": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout est débloqué. Merci de soutenir %@."
+          }
+        }
+      }
+    },
     "Full changelog": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -117,6 +177,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "Identifiant"
+          }
+        }
+      }
+    },
+    "Included": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inclus"
+          }
+        }
+      }
+    },
+    "Included with your purchase": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inclus dans votre achat"
           }
         }
       }
@@ -145,6 +229,18 @@
         }
       }
     },
+    "New": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouveau"
+          }
+        }
+      }
+    },
     "Open System Settings…": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -157,6 +253,18 @@
         }
       }
     },
+    "Purchased": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acheté"
+          }
+        }
+      }
+    },
     "Rate %@": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -165,6 +273,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Noter %@"
+          }
+        }
+      }
+    },
+    "Restore Purchase": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurer l’achat"
           }
         }
       }
@@ -205,6 +325,30 @@
         }
       }
     },
+    "The App Store could not be reached.": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de joindre l’App Store."
+          }
+        }
+      }
+    },
+    "Unavailable": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Indisponible"
+          }
+        }
+      }
+    },
     "Unreleased": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -225,6 +369,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Version"
+          }
+        }
+      }
+    },
+    "What Pro unlocks": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce que Pro débloque"
           }
         }
       }
