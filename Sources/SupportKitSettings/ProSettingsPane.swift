@@ -168,19 +168,42 @@ public struct ProSettingsPane: View {
 
   public var body: some View {
     Form {
+      // The actions sit in the first section, beside the status they change,
+      // rather than under the list. Under it they fell below the window in the
+      // first app that adopted the pane (KVExplorer's settings window, at 450
+      // points, hid Buy and Restore until you scrolled), and a height that
+      // shows them depends on how many features and how long an "Always free"
+      // each app passes. At the top they are visible at any window height and
+      // are the first thing in an iPhone sheet.
       Section {
-        Label {
-          VStack(alignment: .leading, spacing: 2) {
-            Text(productName).font(.body.weight(.semibold))
-            Text(statusDetail)
-              .font(.caption)
-              .foregroundStyle(.secondary)
-              .fixedSize(horizontal: false, vertical: true)
+        HStack(alignment: .center, spacing: 12) {
+          Label {
+            VStack(alignment: .leading, spacing: 2) {
+              Text(productName).font(.body.weight(.semibold))
+              Text(statusDetail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+          } icon: {
+            Image(systemName: isUnlocked ? "checkmark.seal.fill" : "sparkles")
+              .foregroundStyle(isUnlocked ? AnyShapeStyle(.green) : AnyShapeStyle(.tint))
           }
-        } icon: {
-          Image(systemName: isUnlocked ? "checkmark.seal.fill" : "sparkles")
-            .foregroundStyle(isUnlocked ? AnyShapeStyle(.green) : AnyShapeStyle(.tint))
+          Spacer(minLength: 0)
+          if isWorking { ProgressView().controlSize(.small) }
+          actionButton
         }
+        if let errorMessage {
+          Text(errorMessage)
+            .font(.caption)
+            .foregroundStyle(.red)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        // Restore is drawn in every state. App Review requires it for a
+        // non-consumable, and hiding it once unlocked hides it from the one
+        // person who needs it: somebody whose entitlement failed to load.
+        Button(localized("Restore Purchase"), action: restore)
+          .disabled(isWorking)
       }
 
       ProFeaturesSection(
@@ -192,25 +215,6 @@ public struct ProSettingsPane: View {
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-        }
-      }
-
-      Section {
-        if let errorMessage {
-          Text(errorMessage)
-            .font(.caption)
-            .foregroundStyle(.red)
-            .fixedSize(horizontal: false, vertical: true)
-        }
-        HStack {
-          // Restore is drawn in every state. App Review requires it for a
-          // non-consumable, and hiding it once unlocked hides it from the one
-          // person who needs it: somebody whose entitlement failed to load.
-          Button(localized("Restore Purchase"), action: restore)
-            .disabled(isWorking)
-          Spacer()
-          if isWorking { ProgressView().controlSize(.small) }
-          actionButton
         }
       }
     }
