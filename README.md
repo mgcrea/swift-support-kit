@@ -408,6 +408,29 @@ if prompt.recordMilestoneAndShouldAsk() { requestReview() }  // when an export s
 Asks at most once per app version. Apple throttles `requestReview` to roughly three prompts a
 year and may show nothing at all, so nothing here treats "asked" as "reviewed".
 
+## Memory budget
+
+`SupportKitMemory`, for apps that run on-device inference. MLX's defaults let a process
+cache up to the GPU's whole working set and allocate past physical memory, so a leak does not
+crash the app — it stalls the Mac until it is power-cycled. The budget caps both:
+
+```swift
+import SupportKitMemory
+
+let budget = MemoryBudget.forThisMachine   // cache ≤ 2 GB, ceiling 80% of RAM
+MLX.Memory.cacheLimit = budget.cache
+MLX.Memory.memoryLimit = budget.ceiling
+MemoryPressureWatcher.start { _ in MLX.Memory.clearCache() }
+```
+
+- **The product depends on nothing, MLX included.** The app hands the numbers over, so no app
+  that links the Help menu fetches mlx-swift to get it.
+- **Apply it in the test host as well.** Exempting XCTest is how Contour's parallel parity
+  tests took a 64 GB Mac down twice in an afternoon. Run model-loading tests one at a time
+  instead.
+- **On pressure, drop caches, not models.** A resident model evicted under a moment of
+  pressure is a ten-second reload on the user's next click.
+
 ## Styling
 
 `FeedbackLink` and `IssueTrackerLink` render a bare `Label` — no background, no glass, no accent
