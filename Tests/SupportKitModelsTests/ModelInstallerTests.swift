@@ -8,16 +8,15 @@ struct ModelInstallerTests {
   let temp = TempDir()
   var locations: ModelLocations { ModelLocations(root: temp.url) }
 
-  private func installer(
-    _ fetcher: FakeFetcher, _ compiler: FakeCompiler = FakeCompiler(),
-    unpacker: (any ArchiveUnpacker)? = FakeUnpacker()
-  ) -> ModelInstaller {
-    ModelInstaller(locations: locations, fetcher: fetcher, compiler: compiler, unpacker: unpacker)
+  private func installer(_ fetcher: FakeFetcher, _ compiler: FakeCompiler = FakeCompiler())
+    -> ModelInstaller
+  {
+    ModelInstaller(locations: locations, fetcher: fetcher, compiler: compiler)
   }
 
   private func exists(_ url: URL) -> Bool { FileManager.default.fileExists(atPath: url.path()) }
 
-  // MARK: - Hugging Face packages
+  // MARK: - Core ML packages
 
   @Test func installsEveryFileThenCompilesThePackage() async throws {
     let compiler = FakeCompiler()
@@ -183,51 +182,6 @@ struct ModelInstallerTests {
     }
     #expect(downloading.count <= 210)
     #expect(downloading.count > 10)
-  }
-
-  // MARK: - Archives
-
-  @Test func anArchiveIsUnpackedAndTheModelInsideCompiled() async throws {
-    let compiler = FakeCompiler()
-    let package = Fixture.archived()
-    let updates = Updates()
-    let url = try await installer(.serving(), compiler).install(package) { updates.append($0) }
-
-    #expect(url == locations.artifact(of: package))
-    #expect(url.path(percentEncoded: false).hasSuffix("/zipped/model.mlmodelc/"))
-    #expect(exists(url.appending(path: "marker")))
-    #expect(!exists(locations.staging(for: "zipped")))
-    #expect(compiler.compiledPackages.first?.lastPathComponent == "IsNet.mlpackage")
-    #expect(updates.all.last == .compiling)
-  }
-
-  @Test func anArchiveWithNoModelSaysSo() async {
-    await #expect(throws: ModelInstallError.noModelInArchive) {
-      try await installer(.serving(), unpacker: FakeUnpacker(holdsAModel: false))
-        .install(Fixture.archived()) { _ in }
-    }
-    #expect(!exists(locations.staging(for: "zipped")))
-  }
-
-  @Test func anArchiveNeedsAnUnpacker() async {
-    let error = await #expect(throws: ModelInstallError.self) {
-      try await installer(.serving(), unpacker: nil).install(Fixture.archived()) { _ in }
-    }
-    guard case .unpackFailed? = error else {
-      Issue.record("expected unpackFailed, got \(String(describing: error))")
-      return
-    }
-  }
-
-  /// An archive checked against its pinned hash before anything reads it.
-  @Test func aTamperedArchiveIsRefusedBeforeUnpacking() async {
-    let fetcher = FakeFetcher.serving()
-    fetcher.set("model.mlpackage.zip", .data(Data("fake-archivf".utf8)))
-    await #expect(
-      throws: ModelInstallError.fileMismatch(path: "download.zip", repo: "models.example")
-    ) {
-      try await installer(fetcher).install(Fixture.archived()) { _ in }
-    }
   }
 
   // MARK: - Plain files

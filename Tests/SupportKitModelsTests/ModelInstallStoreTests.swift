@@ -17,8 +17,7 @@ struct ModelInstallStoreTests {
     fetcher: FakeFetcher = .serving(), compiler: FakeCompiler = FakeCompiler(),
     describe: (@Sendable (any Error) -> String)? = nil
   ) -> ModelInstallStore {
-    let installer = ModelInstaller(
-      locations: locations, fetcher: fetcher, compiler: compiler, unpacker: FakeUnpacker())
+    let installer = ModelInstaller(locations: locations, fetcher: fetcher, compiler: compiler)
     if let describe {
       return ModelInstallStore(installer: installer, packages: [a, b, weights], describe: describe)
     }

@@ -28,8 +28,7 @@ import PackageDescription
 //
 // `SupportKitModels` downloads, verifies and installs on-demand models. It draws
 // nothing either, and links Core ML and CryptoKit, which no app wanting a Help
-// menu should pay for. It depends on no archive library: an app that ships
-// zipped models brings its own unpacker.
+// menu should pay for.
 //
 // The platform floor follows the consuming apps, which are now all on macOS 26
 // and iOS 26 — checked target by target, including Cupertino's bridge helper at

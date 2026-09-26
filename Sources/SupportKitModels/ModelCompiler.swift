@@ -15,10 +15,3 @@ public struct CoreMLCompiler: ModelCompiler {
     try await MLModel.compileModel(at: package)
   }
 }
-
-/// Unpacks a downloaded archive for `ModelPackage.Form.coreMLArchive`. The package links no
-/// archive library, so an app that ships zipped models brings its own.
-public protocol ArchiveUnpacker: Sendable {
-  /// Extracts `archive` into `destination`, a folder that already exists.
-  func unpack(_ archive: URL, into destination: URL) throws
-}

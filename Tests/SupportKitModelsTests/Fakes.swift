@@ -22,14 +22,11 @@ func sha256Hex(_ data: Data) -> String {
   SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
 }
 
-/// A tiny three-file Hugging Face "package", a zipped model and a weights file, and the
-/// packages that pin them.
+/// A tiny three-file Core ML "package" and a weights file, and the packages that pin them.
 enum Fixture {
   static let manifest = Data("{\"manifest\":1}".utf8)
   static let model = Data(repeating: 7, count: 2048)
   static let weights = Data((0..<4096).map { UInt8($0 % 251) })
-  /// What `FakeUnpacker` accepts as an archive.
-  static let archive = Data("fake-archive".utf8)
 
   static func package(id: String = "fake", revision: String = String(repeating: "a", count: 40))
     -> ModelPackage
@@ -41,33 +38,26 @@ enum Fixture {
     return .huggingFace(
       id: id,
       HuggingFaceSource(
-        repo: "test/\(id)", revision: revision, packagePath: pkg,
+        repo: "test/\(id)", revision: revision,
         files: [
           file("Manifest.json", manifest), file("Data/model.mlmodel", model),
           file("Data/weights/weight.bin", weights),
-        ]))
+        ]),
+      packagePath: pkg)
   }
 
-  /// A single zip at a plain URL, compiled to a fixed name.
-  static func archived(id: String = "zipped", data: Data = archive) -> ModelPackage {
-    ModelPackage(
-      id: id,
-      origin: .url(
-        URL(string: "https://models.example/\(id)/v1/model.mlpackage.zip")!,
-        file: ModelFile(
-          path: "download.zip", bytes: Int64(data.count), sha256: sha256Hex(data))),
-      form: .coreMLArchive(path: "download.zip"), artifactName: "model.mlmodelc")
-  }
-
-  /// Weights kept as downloaded, like MLX's.
+  /// Weights kept as downloaded, like MLX's, under a fixed name.
   static func weightsFile(id: String = "mlx") -> ModelPackage {
     ModelPackage(
       id: id,
-      origin: .url(
-        URL(string: "https://models.example/\(id)/v1/weights.safetensors")!,
-        file: ModelFile(
-          path: "weights.safetensors", bytes: Int64(weights.count), sha256: sha256Hex(weights))),
-      form: .file(path: "weights.safetensors"), artifactName: "weights.safetensors")
+      source: HuggingFaceSource(
+        repo: "test/\(id)", revision: String(repeating: "e", count: 40),
+        files: [
+          ModelFile(
+            path: "\(id)/weights.safetensors", bytes: Int64(weights.count),
+            sha256: sha256Hex(weights))
+        ]),
+      form: .file(path: "\(id)/weights.safetensors"), artifactName: "weights.safetensors")
   }
 }
 
@@ -91,8 +81,7 @@ final class FakeFetcher: FileFetcher, @unchecked Sendable {
   static func serving(weights: Data = Fixture.weights) -> FakeFetcher {
     FakeFetcher([
       "Manifest.json": .data(Fixture.manifest), "model.mlmodel": .data(Fixture.model),
-      "weight.bin": .data(weights), "model.mlpackage.zip": .data(Fixture.archive),
-      "weights.safetensors": .data(weights),
+      "weight.bin": .data(weights), "weights.safetensors": .data(weights),
     ])
   }
 
@@ -142,24 +131,6 @@ final class FakeCompiler: ModelCompiler, @unchecked Sendable {
     try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
     try Data("compiled".utf8).write(to: out.appending(path: "marker"))
     return out
-  }
-}
-
-/// "Unpacks" `Fixture.archive` into a nested `.mlpackage`, the way a real zip holds one, or
-/// into a folder with no model at all.
-struct FakeUnpacker: ArchiveUnpacker {
-  var holdsAModel = true
-
-  func unpack(_ archive: URL, into destination: URL) throws {
-    guard try Data(contentsOf: archive) == Fixture.archive else {
-      throw CocoaError(.fileReadCorruptFile)
-    }
-    let inner =
-      holdsAModel
-      ? destination.appending(path: "IsNet/IsNet.mlpackage", directoryHint: .isDirectory)
-      : destination.appending(path: "README", directoryHint: .isDirectory)
-    try FileManager.default.createDirectory(at: inner, withIntermediateDirectories: true)
-    try Fixture.manifest.write(to: inner.appending(path: "Manifest.json"))
   }
 }
 

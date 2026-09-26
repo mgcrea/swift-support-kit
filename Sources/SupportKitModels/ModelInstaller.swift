@@ -17,12 +17,10 @@ public enum ModelInstallError: Error, Equatable, LocalizedError {
   /// A non-2xx answer other than 404.
   case httpStatus(Int)
   /// A file whose size or hash is not what the registry pins, or that is missing (404) at the
-  /// pinned revision or URL. Names the file and where it came from, which is where the fix
+  /// pinned revision. Names the file and where it came from, which is where the fix
   /// starts.
   case fileMismatch(path: String, repo: String)
   case diskFull
-  case unpackFailed(String)
-  case noModelInArchive
   case compileFailed(String)
 
   public var errorDescription: String? {
@@ -36,10 +34,6 @@ public enum ModelInstallError: Error, Equatable, LocalizedError {
         + "or update the app."
     case .diskFull:
       "There isn't enough disk space. Free up some space and try again."
-    case .unpackFailed(let detail):
-      "The download couldn't be unpacked: \(detail)."
-    case .noModelInArchive:
-      "No .mlpackage or .mlmodel was found inside the downloaded archive."
     case .compileFailed(let detail):
       "The model downloaded but couldn't be prepared: \(detail)."
     }
@@ -47,24 +41,22 @@ public enum ModelInstallError: Error, Equatable, LocalizedError {
 }
 
 /// Downloads a model's files one by one into its staging folder, checks each file's size and
-/// SHA-256 against the registry, turns them into the finished model (compiled, unpacked and
-/// compiled, or kept as is) and moves it into place. Anything that stops it (an error or
+/// SHA-256 against the registry, turns them into the finished model (compiled, or kept as
+/// is) and moves it into place. Anything that stops it (an error or
 /// cancellation) deletes the staging folder, so a model is either fully installed or not
 /// there at all, and the previously installed version is untouched until the new one is.
 public struct ModelInstaller: Sendable {
   public let locations: ModelLocations
   private let fetcher: any FileFetcher
   private let compiler: any ModelCompiler
-  private let unpacker: (any ArchiveUnpacker)?
 
   public init(
     locations: ModelLocations, fetcher: any FileFetcher = URLSessionFetcher(),
-    compiler: any ModelCompiler = CoreMLCompiler(), unpacker: (any ArchiveUnpacker)? = nil
+    compiler: any ModelCompiler = CoreMLCompiler()
   ) {
     self.locations = locations
     self.fetcher = fetcher
     self.compiler = compiler
-    self.unpacker = unpacker
   }
 
   /// Returns the finished model's URL, `locations.artifact(of: package)`. `@concurrent` so
@@ -105,10 +97,17 @@ public struct ModelInstaller: Sendable {
         // After the byte count, not before it: a last file reporting its bytes once more
         // after the hash would show "downloading" again between "verifying" and the end.
         progress(.verifying)
-        try Self.verify(destination, against: file, repo: package.repository)
+        try Self.verify(destination, against: file, repo: package.source.repo)
       }
       try Task.checkCancellation()
-      let finished = try await finish(package, in: staging, progress: progress)
+      let finished: URL
+      switch package.form {
+      case .file(let path):
+        finished = staging.appending(path: path)
+      case .coreML(let path):
+        progress(.compiling)
+        finished = try await compile(staging.appending(path: path))
+      }
       let target = locations.artifact(of: package)
       try? files.removeItem(at: target)
       try Self.mappingDiskFull { try files.moveItem(at: finished, to: target) }
@@ -117,39 +116,6 @@ public struct ModelInstaller: Sendable {
     } catch {
       try? files.removeItem(at: staging)
       throw error
-    }
-  }
-
-  /// Turns the verified files in `staging` into the model to move into place.
-  private func finish(
-    _ package: ModelPackage, in staging: URL,
-    progress: @escaping @Sendable (InstallProgress) -> Void
-  ) async throws -> URL {
-    switch package.form {
-    case .file(let path):
-      return staging.appending(path: path)
-    case .coreML(let path):
-      progress(.compiling)
-      return try await compile(staging.appending(path: path))
-    case .coreMLArchive(let path):
-      progress(.compiling)
-      guard let unpacker else {
-        throw ModelInstallError.unpackFailed("no archive unpacker is configured")
-      }
-      let unpacked = staging.appending(path: "unpacked", directoryHint: .isDirectory)
-      do {
-        try FileManager.default.createDirectory(at: unpacked, withIntermediateDirectories: true)
-        try unpacker.unpack(staging.appending(path: path), into: unpacked)
-      } catch  where Self.isDiskFull(error) {
-        throw ModelInstallError.diskFull
-      } catch {
-        throw ModelInstallError.unpackFailed(error.localizedDescription)
-      }
-      try Task.checkCancellation()
-      guard let model = Self.findCoreMLModel(in: unpacked) else {
-        throw ModelInstallError.noModelInArchive
-      }
-      return try await compile(model)
     }
   }
 
@@ -184,7 +150,7 @@ public struct ModelInstaller: Sendable {
     } catch let error as URLError where error.code == .cancelled {
       throw CancellationError()
     } catch let error as HTTPStatusError where error.status == 404 {
-      throw ModelInstallError.fileMismatch(path: file.path, repo: package.repository)
+      throw ModelInstallError.fileMismatch(path: file.path, repo: package.source.repo)
     } catch let error as HTTPStatusError {
       throw ModelInstallError.httpStatus(error.status)
     } catch let error as ModelInstallError {
@@ -201,19 +167,6 @@ public struct ModelInstaller: Sendable {
     guard size == file.bytes, try FileDigest.sha256(of: url) == file.sha256.lowercased() else {
       throw ModelInstallError.fileMismatch(path: file.path, repo: repo)
     }
-  }
-
-  /// The first `.mlpackage` or `.mlmodel` under `folder`, whatever the archive's layout.
-  static func findCoreMLModel(in folder: URL) -> URL? {
-    guard
-      let walker = FileManager.default.enumerator(
-        at: folder, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
-    else { return nil }
-    for case let url as URL in walker {
-      let ext = url.pathExtension.lowercased()
-      if ext == "mlpackage" || ext == "mlmodel" { return url }
-    }
-    return nil
   }
 
   private static func mappingDiskFull(_ body: () throws -> Void) throws {
