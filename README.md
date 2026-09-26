@@ -431,6 +431,33 @@ MemoryPressureWatcher.start { _ in MLX.Memory.clearCache() }
 - **On pressure, drop caches, not models.** A resident model evicted under a moment of
   pressure is a ten-second reload on the user's next click.
 
+## Model downloads
+
+`SupportKitModels`, for apps that download machine-learning models on demand. Each model is
+one or more files pinned by size and SHA-256, from a Hugging Face commit or a plain URL. The
+installer fetches them into a staging folder, checks each one, then compiles it, unpacks and
+compiles it, or keeps it as it is, and moves the result into place:
+
+```swift
+import SupportKitModels
+
+let installer = ModelInstaller(locations: .applicationSupport("Pupitre"))
+let store = ModelInstallStore(installer: installer, packages: registry.map(\.package))
+store.install(package) { result in /* activate it, or drop a loaded copy */ }
+store.state(of: package.id)         // .downloading(received:total:), .verifying, .ready(url), …
+store.installedURL(of: package.id)  // what to load now, even mid-update
+```
+
+- **The registry stays in the app.** Pipeline steps, Pro tiers and which model is active are
+  the app's business. It hands the store a `ModelPackage` per downloadable entry.
+- **No archive library.** A zipped model (`.coreMLArchive`) needs the app's `ArchiveUnpacker`,
+  so apps that ship no zips fetch no zip dependency.
+- **A model is fully installed or not there at all.** Every exit path deletes the staging
+  folder, and a failed or cancelled update leaves the previous version usable.
+- **The models folder is excluded from backups.** Everything in it can be downloaded again.
+- **Offline tests.** The network and the Core ML compiler sit behind `FileFetcher` and
+  `ModelCompiler`, so the tests serve files from memory.
+
 ## Styling
 
 `FeedbackLink` and `IssueTrackerLink` render a bare `Label` — no background, no glass, no accent

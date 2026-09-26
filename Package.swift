@@ -1,7 +1,7 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
-// Six products, deliberately split.
+// Seven products, deliberately split.
 //
 // `SupportKit` is Foundation-only, so it can be unit-tested without a host app
 // and imported from a non-UI module. `SupportKitUI` is the SwiftUI surface. An
@@ -25,6 +25,11 @@ import PackageDescription
 // the app hands the two numbers to MLX itself, in three lines. It is also the
 // only product with no UI at all, which is why it is not folded into
 // `SupportKit`: an app that wants the budget has no use for the support URLs.
+//
+// `SupportKitModels` downloads, verifies and installs on-demand models. It draws
+// nothing either, and links Core ML and CryptoKit, which no app wanting a Help
+// menu should pay for. It depends on no archive library: an app that ships
+// zipped models brings its own unpacker.
 //
 // The platform floor follows the consuming apps, which are now all on macOS 26
 // and iOS 26 — checked target by target, including Cupertino's bridge helper at
@@ -66,6 +71,7 @@ let package = Package(
     .library(name: "SupportKitMenuBar", targets: ["SupportKitMenuBar"]),
     .library(name: "SupportKitToolbar", targets: ["SupportKitToolbar"]),
     .library(name: "SupportKitMemory", targets: ["SupportKitMemory"]),
+    .library(name: "SupportKitModels", targets: ["SupportKitModels"]),
   ],
   targets: [
     .target(name: "SupportKit"),
@@ -89,11 +95,14 @@ let package = Package(
     .target(name: "SupportKitToolbar"),
     // No catalog: it draws nothing.
     .target(name: "SupportKitMemory"),
+    // No catalog: its error messages are English an app rewords through `describe`.
+    .target(name: "SupportKitModels"),
     .testTarget(name: "SupportKitTests", dependencies: ["SupportKit"]),
     .testTarget(name: "SupportKitSettingsTests", dependencies: ["SupportKitSettings"]),
     .testTarget(name: "SupportKitMenuBarTests", dependencies: ["SupportKitMenuBar"]),
     .testTarget(name: "SupportKitToolbarTests", dependencies: ["SupportKitToolbar"]),
     .testTarget(name: "SupportKitMemoryTests", dependencies: ["SupportKitMemory"]),
+    .testTarget(name: "SupportKitModelsTests", dependencies: ["SupportKitModels"]),
     // Depends on no module: it reads the sources and the catalogs off disk, so a
     // lookup that happens to resolve at runtime for the wrong reason cannot fool it.
     .testTarget(name: "SupportKitLocalizationTests"),
