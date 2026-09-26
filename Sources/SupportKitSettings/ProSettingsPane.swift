@@ -300,6 +300,10 @@ private struct ProFeatureRow: View {
   let isNew: Bool
   let isUnlocked: Bool
 
+  /// One column for every symbol. At their natural widths a car or a stack of squares is
+  /// wider than a pen, and the titles beside them stopped lining up.
+  @ScaledMetric(relativeTo: .body) private var iconWidth = 20
+
   var body: some View {
     Label {
       VStack(alignment: .leading, spacing: 2) {
@@ -323,6 +327,7 @@ private struct ProFeatureRow: View {
     } icon: {
       Image(systemName: feature.systemImage)
         .foregroundStyle(.tint)
+        .frame(width: iconWidth)
     }
     // Unlocked, the row says it is yours without a second column of ticks.
     .accessibilityValue(isUnlocked ? Text(localized("Included")) : Text(verbatim: ""))
