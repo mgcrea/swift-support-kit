@@ -242,6 +242,8 @@ struct ModelInstallerTests {
     #expect(try Data(contentsOf: url) == Fixture.weights)
     #expect(compiler.compiledPackages.isEmpty)
     #expect(!updates.all.contains(.compiling))
+    // Verifying is the last thing it does, with no byte count after it.
+    #expect(updates.all.last == .verifying)
     #expect(!exists(locations.staging(for: "mlx")))
   }
 

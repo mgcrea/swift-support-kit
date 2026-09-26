@@ -99,11 +99,13 @@ public struct ModelInstaller: Sendable {
             at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
           try files.moveItem(at: temporary, to: destination)
         }
-        progress(.verifying)
-        try Self.verify(destination, against: file, repo: package.repository)
         done += file.bytes
         gate.reset(to: done)
         progress(.downloading(received: done, total: total))
+        // After the byte count, not before it: a last file reporting its bytes once more
+        // after the hash would show "downloading" again between "verifying" and the end.
+        progress(.verifying)
+        try Self.verify(destination, against: file, repo: package.repository)
       }
       try Task.checkCancellation()
       let finished = try await finish(package, in: staging, progress: progress)
