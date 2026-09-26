@@ -86,15 +86,21 @@ public enum ProPurchaseState: Sendable, Equatable {
 public struct ProFeaturesSection: View {
   private let features: [ProFeatureEntry]
   private let isUnlocked: Bool
+  private let footer: LocalizedStringKey?
   private let installedVersion: String
 
+  /// - Parameter footer: a sentence under the list, in the **app's** catalog: a caveat on
+  ///   the whole offer rather than on one feature (Balise's "the overlays cover France"),
+  ///   which read as belonging to whichever row it was attached to.
   public init(
     features: [ProFeatureEntry],
     isUnlocked: Bool,
+    footer: LocalizedStringKey? = nil,
     installedVersion: String = ReleaseNotes.bundleVersion
   ) {
     self.features = features
     self.isUnlocked = isUnlocked
+    self.footer = footer
     self.installedVersion = installedVersion
   }
 
@@ -108,6 +114,13 @@ public struct ProFeaturesSection: View {
       }
     } header: {
       Text(isUnlocked ? localized("Included with your purchase") : localized("What Pro unlocks"))
+    } footer: {
+      if let footer {
+        Text(footer)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
     }
   }
 }
@@ -120,7 +133,7 @@ public struct ProFeaturesSection: View {
 /// blocking them. It takes values and closures rather than a store, because
 /// every app's store is different (`ProStore`, `PurchaseManager`,
 /// `EntitlementStore`) and none of them belongs in this package.
-public struct ProSettingsPane: View {
+public struct ProSettingsPane<Notes: View>: View {
   private let app: SupportApp
   private let productName: LocalizedStringKey
   private let state: ProPurchaseState
@@ -129,6 +142,8 @@ public struct ProSettingsPane: View {
   private let isWorking: Bool
   private let errorMessage: String?
   private let unlockedDetail: LocalizedStringKey?
+  private let featuresFooter: LocalizedStringKey?
+  private let notes: Notes
   private let installedVersion: String
   private let purchase: () -> Void
   private let restore: () -> Void
@@ -139,6 +154,13 @@ public struct ProSettingsPane: View {
   ///     passing: a pitch that says only what is locked reads as if everything is.
   ///   - isWorking: a purchase or restore is in flight; both buttons disable.
   ///   - errorMessage: the store's last error, already worded by the app.
+  ///   - featuresFooter: a caveat under the feature list, in the app's catalog. See
+  ///     `ProFeaturesSection`'s `footer`.
+  ///   - notes: drawn in the first section, under the status line and beside the actions:
+  ///     the store states the package cannot know. A purchase waiting for Ask to Buy or a
+  ///     deferred card payment is neither success nor failure, and saying nothing reads as a
+  ///     button that did nothing; an app with a consequence of unlocking that needs a
+  ///     relaunch says so here. Each app words its own, in its own catalog.
   ///   - unlockedDetail: the sentence under the product name once unlocked, in the
   ///     **app's** catalog. Nil draws the package's thank-you. For an app that
   ///     gives Pro to people who paid for it before Pro existed (D1Explorer,
@@ -155,9 +177,11 @@ public struct ProSettingsPane: View {
     isWorking: Bool = false,
     errorMessage: String? = nil,
     unlockedDetail: LocalizedStringKey? = nil,
+    featuresFooter: LocalizedStringKey? = nil,
     installedVersion: String = ReleaseNotes.bundleVersion,
     purchase: @escaping () -> Void,
-    restore: @escaping () -> Void
+    restore: @escaping () -> Void,
+    @ViewBuilder notes: () -> Notes
   ) {
     self.app = app
     self.productName = productName
@@ -167,6 +191,8 @@ public struct ProSettingsPane: View {
     self.isWorking = isWorking
     self.errorMessage = errorMessage
     self.unlockedDetail = unlockedDetail
+    self.featuresFooter = featuresFooter
+    self.notes = notes()
     self.installedVersion = installedVersion
     self.purchase = purchase
     self.restore = restore
@@ -201,6 +227,7 @@ public struct ProSettingsPane: View {
           if isWorking { ProgressView().controlSize(.small) }
           actionButton
         }
+        notes
         if let errorMessage {
           Text(errorMessage)
             .font(.caption)
@@ -215,7 +242,8 @@ public struct ProSettingsPane: View {
       }
 
       ProFeaturesSection(
-        features: features, isUnlocked: isUnlocked, installedVersion: installedVersion)
+        features: features, isUnlocked: isUnlocked, footer: featuresFooter,
+        installedVersion: installedVersion)
 
       if let alwaysFree {
         Section(localized("Always free")) {
@@ -298,5 +326,30 @@ private struct ProFeatureRow: View {
     }
     // Unlocked, the row says it is yours without a second column of ticks.
     .accessibilityValue(isUnlocked ? Text(localized("Included")) : Text(verbatim: ""))
+  }
+}
+
+extension ProSettingsPane where Notes == EmptyView {
+  /// The pane with no notes of the app's own, which is every pane written before 1.15.0.
+  public init(
+    app: SupportApp,
+    productName: LocalizedStringKey,
+    state: ProPurchaseState,
+    features: [ProFeatureEntry],
+    alwaysFree: LocalizedStringKey? = nil,
+    isWorking: Bool = false,
+    errorMessage: String? = nil,
+    unlockedDetail: LocalizedStringKey? = nil,
+    featuresFooter: LocalizedStringKey? = nil,
+    installedVersion: String = ReleaseNotes.bundleVersion,
+    purchase: @escaping () -> Void,
+    restore: @escaping () -> Void
+  ) {
+    self.init(
+      app: app, productName: productName, state: state, features: features,
+      alwaysFree: alwaysFree, isWorking: isWorking, errorMessage: errorMessage,
+      unlockedDetail: unlockedDetail, featuresFooter: featuresFooter,
+      installedVersion: installedVersion, purchase: purchase, restore: restore
+    ) { EmptyView() }
   }
 }
