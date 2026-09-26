@@ -128,6 +128,7 @@ public struct ProSettingsPane: View {
   private let alwaysFree: LocalizedStringKey?
   private let isWorking: Bool
   private let errorMessage: String?
+  private let unlockedDetail: LocalizedStringKey?
   private let installedVersion: String
   private let purchase: () -> Void
   private let restore: () -> Void
@@ -138,6 +139,11 @@ public struct ProSettingsPane: View {
   ///     passing: a pitch that says only what is locked reads as if everything is.
   ///   - isWorking: a purchase or restore is in flight; both buttons disable.
   ///   - errorMessage: the store's last error, already worded by the app.
+  ///   - unlockedDetail: the sentence under the product name once unlocked, in the
+  ///     **app's** catalog. Nil draws the package's thank-you. For an app that
+  ///     gives Pro to people who paid for it before Pro existed (D1Explorer,
+  ///     R2Explorer and DevPulse were paid downloads first), which is the one
+  ///     unlocked state a plain "thank you" does not explain.
   ///   - purchase: buy, or open the app's upgrade sheet. The pane never calls
   ///     StoreKit itself.
   public init(
@@ -148,6 +154,7 @@ public struct ProSettingsPane: View {
     alwaysFree: LocalizedStringKey? = nil,
     isWorking: Bool = false,
     errorMessage: String? = nil,
+    unlockedDetail: LocalizedStringKey? = nil,
     installedVersion: String = ReleaseNotes.bundleVersion,
     purchase: @escaping () -> Void,
     restore: @escaping () -> Void
@@ -159,6 +166,7 @@ public struct ProSettingsPane: View {
     self.alwaysFree = alwaysFree
     self.isWorking = isWorking
     self.errorMessage = errorMessage
+    self.unlockedDetail = unlockedDetail
     self.installedVersion = installedVersion
     self.purchase = purchase
     self.restore = restore
@@ -180,7 +188,7 @@ public struct ProSettingsPane: View {
           Label {
             VStack(alignment: .leading, spacing: 2) {
               Text(productName).font(.body.weight(.semibold))
-              Text(statusDetail)
+              statusText
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -240,6 +248,13 @@ public struct ProSettingsPane: View {
         .disabled(true)
         .help(localized("The App Store could not be reached."))
     }
+  }
+
+  /// The app's `unlockedDetail` when it passed one and Pro is unlocked, otherwise the
+  /// package's sentence for the state.
+  private var statusText: Text {
+    if state == .unlocked, let unlockedDetail { return Text(unlockedDetail) }
+    return Text(statusDetail)
   }
 
   private var statusDetail: String {
