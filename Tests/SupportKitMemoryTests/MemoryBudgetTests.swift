@@ -71,4 +71,32 @@ private let gib: UInt64 = 1024 * 1024 * 1024
     MemoryPressureWatcher.start { _ in }
     #expect(MemoryPressureWatcher.isWatching)
   }
+
+  /// The handler runs on the source's own queue, never the main one, and must
+  /// not trap there. A pressure source cannot be fired on demand, so this
+  /// installs the same handler on one that can.
+  @MainActor
+  @Test func theHandlerRunsOnTheSourcesQueue() async {
+    let source = DispatchSource.makeUserDataAddSource(
+      queue: DispatchQueue(label: "pressure-test", qos: .utility))
+    let levels = LevelLog()
+    await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+      MemoryPressureWatcher.install(
+        {
+          levels.append($0)
+          done.resume()
+        }, on: source)
+      source.resume()
+      source.add(data: DispatchSource.MemoryPressureEvent.critical.rawValue)
+    }
+    source.cancel()
+    #expect(levels.all == [.critical])
+  }
+}
+
+private final class LevelLog: @unchecked Sendable {
+  private let lock = NSLock()
+  private var levels: [MemoryPressureWatcher.Level] = []
+  func append(_ level: MemoryPressureWatcher.Level) { lock.withLock { levels.append(level) } }
+  var all: [MemoryPressureWatcher.Level] { lock.withLock { levels } }
 }
