@@ -48,9 +48,13 @@ public struct MemoryBudget: Equatable, Sendable {
   }
 
   /// The budget for this machine: its physical memory and its default Metal
-  /// device's recommended working set.
+  /// device's recommended working set. On iOS it is the per-app budget from
+  /// `limits(perAppLimit:)`, because the system terminates a process long before physical memory runs out.
   public static var forThisMachine: MemoryBudget {
-    limits(
+    if let limit = perAppLimit {
+      return limits(perAppLimit: limit)
+    }
+    return limits(
       physicalMemory: ProcessInfo.processInfo.physicalMemory,
       gpuMaxWorkingSet: MTLCreateSystemDefaultDevice()?.recommendedMaxWorkingSetSize)
   }
