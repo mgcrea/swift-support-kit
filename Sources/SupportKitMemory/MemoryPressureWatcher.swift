@@ -47,12 +47,28 @@ public enum MemoryPressureWatcher {
     let queue = DispatchQueue(label: "io.mgcrea.SupportKit.memory-pressure", qos: .utility)
     let watcher = DispatchSource.makeMemoryPressureSource(
       eventMask: [.warning, .critical], queue: queue)
-    // Retains itself through the handler. Intentional: the source is never
-    // cancelled, so there is nothing for the cycle to leak.
-    watcher.setEventHandler {
-      handler(watcher.data.contains(.critical) ? .critical : .warning)
-    }
+    install(handler, on: watcher)
     watcher.resume()
     source = watcher
+  }
+
+  /// Wires `handler` to `source`: outside `start` on purpose.
+  ///
+  /// `setEventHandler` takes a plain closure, and one written inside a
+  /// `@MainActor` function is main-actor isolated. Dispatch calls it on the
+  /// utility queue, Swift 6 checks that isolation at run time, and the app
+  /// traps on the first pressure event: the watcher took the app down at the
+  /// moment it existed for. Written here it carries no isolation.
+  ///
+  /// Takes any source, not just a pressure one, so a test can fire it.
+  nonisolated static func install(
+    _ handler: @escaping @Sendable (Level) -> Void, on source: DispatchSourceProtocol
+  ) {
+    // Retains the source through the handler. Intentional: the source is never
+    // cancelled, so there is nothing for the cycle to leak.
+    source.setEventHandler {
+      let event = DispatchSource.MemoryPressureEvent(rawValue: source.data)
+      handler(event.contains(.critical) ? .critical : .warning)
+    }
   }
 }
