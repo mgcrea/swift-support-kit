@@ -235,6 +235,19 @@ scene sizes itself to its content, so `NSWindow.setContentSize` loses to SwiftUI
 takes the height and silently drops the width. Three apps in the fleet found that separately
 before anyone noticed it was one bug.
 
+### Colour rows
+
+`SwatchColorPicker` is a settings row for a colour: the label, a chip that opens a few swatches
+chosen for what is being coloured, a hex field for anything else, and the system panel past that.
+`set(nil)` means "remove the key" — the caller stores nothing rather than the default's hex, so a
+later change to the default reaches everyone who never picked. The palette is the app's own.
+
+```swift
+SwatchColorPicker(
+  "Paper", value: paper, default: .hex(0xF7F5ED), palette: papers
+) { UserDefaults.standard.set($0?.hex, forKey: "app.paper") }
+```
+
 ## The menu bar panel
 
 The chrome around a `MenuBarExtra` summary — header, footer row, width, scroll cap — once. The

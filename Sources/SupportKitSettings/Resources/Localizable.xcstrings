@@ -504,6 +504,54 @@
           }
         }
       }
+    },
+    "Restore the default colour": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rétablir la couleur par défaut"
+          }
+        }
+      }
+    },
+    "Default colour": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couleur par défaut"
+          }
+        }
+      }
+    },
+    "Hex": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hex"
+          }
+        }
+      }
+    },
+    "More…": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus…"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
