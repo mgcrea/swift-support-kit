@@ -248,6 +248,17 @@ SwatchColorPicker(
 ) { UserDefaults.standard.set($0?.hex, forKey: "app.paper") }
 ```
 
+`SwatchColorWell` is the row's chip on its own, for a layout the row does not fit: a run of
+colours side by side, each under its caption. The label is whatever shows the colour, and a click
+opens the same popover. It has no restore button: the default is the popover's first swatch.
+
+```swift
+SwatchColorWell(value: red, default: .hex(0xD62828), palette: notes) { store($0?.hex) } label: {
+  Circle().fill(red.color).frame(width: 14, height: 14)
+}
+.accessibilityLabel("C")
+```
+
 ## The menu bar panel
 
 The chrome around a `MenuBarExtra` summary — header, footer row, width, scroll cap — once. The
