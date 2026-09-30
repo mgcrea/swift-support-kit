@@ -18,12 +18,7 @@ public struct SwatchColorPicker: View {
   private let supportsOpacity: Bool
   private let set: (SwatchColor?) -> Void
 
-  @State private var isPresented = false
   @Environment(\.isEnabled) private var isEnabled
-
-  #if canImport(AppKit)
-    @State private var panel = ColourPanelLink()
-  #endif
 
   public init(
     _ titleKey: LocalizedStringKey, value: SwatchColor, default fallback: SwatchColor,
@@ -65,7 +60,7 @@ public struct SwatchColorPicker: View {
       Spacer()
       // Kept in the layout while hidden, so the chips of a column stay lined up.
       Button {
-        choose(nil)
+        set(nil)
       } label: {
         Image(systemName: "arrow.uturn.backward")
       }
@@ -75,37 +70,16 @@ public struct SwatchColorPicker: View {
       .opacity(isDefault ? 0 : 1)
       .disabled(isDefault)
 
-      Button {
-        isPresented = true
-      } label: {
+      SwatchColorWell(
+        value: value, default: fallback, palette: palette, supportsOpacity: supportsOpacity,
+        set: set
+      ) {
         ColourChip(colour: value)
           .frame(width: 38, height: 20)
       }
-      .buttonStyle(.plain)
       .accessibilityLabel(label)
-      .accessibilityValue(value.typed(withAlpha: supportsOpacity))
-      .popover(isPresented: $isPresented, arrowEdge: .bottom) {
-        SwatchPopover(
-          value: value, swatches: SwatchColorPicker.swatches(fallback, palette),
-          fallback: fallback, supportsOpacity: supportsOpacity, choose: choose,
-          more: more)
-      }
     }
     .opacity(isEnabled ? 1 : 0.5)
-  }
-
-  private func choose(_ colour: SwatchColor?) {
-    guard let colour, colour.hex != fallback.hex else { return set(nil) }
-    set(supportsOpacity ? colour : colour.withAlpha(1))
-  }
-
-  /// The system's own picker, for the eyedropper and the wheel. On the Mac the panel outlives
-  /// the popover it was opened from, so the link to it belongs to the row.
-  private func more() {
-    #if canImport(AppKit)
-      isPresented = false
-      panel.open(value, showsAlpha: supportsOpacity) { choose($0) }
-    #endif
   }
 
   /// The default first, then the palette without it.
@@ -113,6 +87,78 @@ public struct SwatchColorPicker: View {
     -> [SwatchColor]
   {
     [fallback] + palette.filter { $0.hex != fallback.hex }
+  }
+
+  /// What a pick hands to `set`: nil for the default, or for nothing picked, and an opaque
+  /// colour unless the row is for something see-through.
+  public nonisolated static func stored(
+    _ picked: SwatchColor?, default fallback: SwatchColor, supportsOpacity: Bool
+  ) -> SwatchColor? {
+    guard let picked, picked.hex != fallback.hex else { return nil }
+    return supportsOpacity ? picked : picked.withAlpha(1)
+  }
+}
+
+/// The row's colour well on its own, for a layout the row does not fit: several colours side by
+/// side, or a colour under its own caption. The label is whatever shows the colour, and a click
+/// on it opens the row's popover: the swatches with the default first, the hex field and the
+/// system panel. `set(nil)` means "the default", as in the row.
+///
+/// There is no restore button here: the default is the popover's first swatch.
+public struct SwatchColorWell<Label: View>: View {
+  private let value: SwatchColor
+  private let fallback: SwatchColor
+  private let palette: [SwatchColor]
+  private let supportsOpacity: Bool
+  private let set: (SwatchColor?) -> Void
+  private let label: Label
+
+  @State private var isPresented = false
+
+  #if canImport(AppKit)
+    @State private var panel = ColourPanelLink()
+  #endif
+
+  public init(
+    value: SwatchColor, default fallback: SwatchColor, palette: [SwatchColor],
+    supportsOpacity: Bool = false, set: @escaping (SwatchColor?) -> Void,
+    @ViewBuilder label: () -> Label
+  ) {
+    self.value = value
+    self.fallback = fallback
+    self.palette = palette
+    self.supportsOpacity = supportsOpacity
+    self.set = set
+    self.label = label()
+  }
+
+  public var body: some View {
+    Button {
+      isPresented = true
+    } label: {
+      label
+    }
+    .buttonStyle(.plain)
+    .accessibilityValue(value.typed(withAlpha: supportsOpacity))
+    .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+      SwatchPopover(
+        value: value, swatches: SwatchColorPicker.swatches(fallback, palette),
+        fallback: fallback, supportsOpacity: supportsOpacity, choose: choose,
+        more: more)
+    }
+  }
+
+  private func choose(_ colour: SwatchColor?) {
+    set(SwatchColorPicker.stored(colour, default: fallback, supportsOpacity: supportsOpacity))
+  }
+
+  /// The system's own picker, for the eyedropper and the wheel. On the Mac the panel outlives
+  /// the popover it was opened from, so the link to it belongs to the well.
+  private func more() {
+    #if canImport(AppKit)
+      isPresented = false
+      panel.open(value, showsAlpha: supportsOpacity) { choose($0) }
+    #endif
   }
 }
 

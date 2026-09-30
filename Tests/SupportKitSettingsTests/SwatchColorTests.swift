@@ -56,6 +56,19 @@ struct SwatchColorTests {
     #expect(swatches.count == 3)
   }
 
+  /// What a pick hands to `set`: nothing for the default, so the caller removes its key, and
+  /// an opaque colour unless the row is for something see-through.
+  @Test func aPickIsStoredOpaqueAndTheDefaultAsNothing() {
+    let fallback = SwatchColor.hex(0xF7F5ED)
+    let faint = SwatchColor.hex(0x1F2A44, alpha: 0.5)
+    #expect(SwatchColorPicker.stored(nil, default: fallback, supportsOpacity: false) == nil)
+    #expect(SwatchColorPicker.stored(fallback, default: fallback, supportsOpacity: false) == nil)
+    #expect(
+      SwatchColorPicker.stored(faint, default: fallback, supportsOpacity: false)?.hex
+        == "1F2A44FF")
+    #expect(SwatchColorPicker.stored(faint, default: fallback, supportsOpacity: true) == faint)
+  }
+
   /// A colour picked in the system panel comes back through `Color`, so it must survive the
   /// trip to within what the stored hex can tell apart.
   @Test func survivesATripThroughColor() {
