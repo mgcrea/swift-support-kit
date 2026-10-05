@@ -588,6 +588,42 @@
           }
         }
       }
+    },
+    "Not Now": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus tard"
+          }
+        }
+      }
+    },
+    "Unlock for %@": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Débloquer pour %@"
+          }
+        }
+      }
+    },
+    "Bought once: no subscription, no paid upgrades. Shared with your family through Family Sharing, and on every device signed in to your Apple Account.": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acheté une fois : pas d’abonnement, pas de mise à niveau payante. Partagé avec votre famille grâce au partage familial, et sur tous les appareils connectés à votre compte Apple."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

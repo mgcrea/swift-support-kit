@@ -295,7 +295,8 @@ public struct ProSettingsPane<Notes: View>: View {
   }
 }
 
-private struct ProFeatureRow: View {
+/// One feature, as the pane and the upgrade sheet both list it.
+struct ProFeatureRow: View {
   let feature: ProFeatureEntry
   let isNew: Bool
   let isUnlocked: Bool
