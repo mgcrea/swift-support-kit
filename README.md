@@ -259,6 +259,36 @@ SwatchColorWell(value: red, default: .hex(0xD62828), palette: notes) { store($0?
 .accessibilityLabel("C")
 ```
 
+### Pro gates
+
+Settings ▸ Pro is where somebody checks what they own. The gate is where they meet Pro: a
+locked control, and the sheet it raises. Three pieces, none of which calls StoreKit; the store
+stays in each app.
+
+- `ProBadge(state:)`: the "PRO" capsule beside a locked control. It draws nothing while the
+  state is `.unknown`, because a badge drawn before the store answers is shown to somebody who
+  has paid. `ProBadge.title(_:isLocked:)` gives a menu or picker item its "(Pro)" suffix.
+- `ProUpgradeSheet`: names what was reached for, says what stays free, lists the same
+  `ProFeatureEntry` rows as the pane, and offers Unlock, Restore Purchase and Not Now. It
+  closes itself when the state turns `.unlocked`.
+- `.proUpgradeSheet(item:isUnlocked:onUnlock:content:)`: presents the sheet for a request, and
+  calls `onUnlock` with it if Pro is unlocked when the sheet closes.
+
+```swift
+@State private var upgrade: UpgradeRequest?
+
+Toggle("Arcade Effects", isOn: arcadeBinding)  // sets `upgrade` when locked
+  .proUpgradeSheet(item: $upgrade, isUnlocked: { store.isPro }) { _ in
+    arcade = true
+  } content: { request in
+    ProUpgradeSheet(
+      productName: "Pupitre Pro", headline: request.headline, alwaysFree: alwaysFree,
+      features: ProFeature.entries, state: store.purchaseState, isWorking: store.isWorking,
+      errorMessage: store.lastError, purchase: { Task { await store.purchase() } },
+      restore: { Task { await store.restore() } })
+  }
+```
+
 ## The menu bar panel
 
 The chrome around a `MenuBarExtra` summary — header, footer row, width, scroll cap — once. The
