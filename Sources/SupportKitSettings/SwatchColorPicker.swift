@@ -218,6 +218,10 @@ private struct SwatchPopover: View {
     let shown = colour(for: swatch)
     let isCurrent = shown.hex == value.hex
     return Button {
+      // The hex field is focused when the popover opens, so it does not follow the value
+      // while it has focus; leaving it commits what it holds. Bring its text up to the pick
+      // first, or leaving it would put the old colour back.
+      typed = shown.typed(withAlpha: supportsOpacity)
       choose(shown)
     } label: {
       ColourChip(colour: shown)
@@ -262,6 +266,8 @@ private struct SwatchPopover: View {
       typed = value.typed(withAlpha: supportsOpacity)
       return
     }
+    // Nothing was typed: the field only shows the colour, and a pick has already set it.
+    if typed == value.typed(withAlpha: supportsOpacity) { return }
     // Six digits typed for a see-through colour keep its opacity, as a swatch does.
     let digits = typed.trimmingCharacters(in: .whitespaces).drop { $0 == "#" }.count
     let colour =
