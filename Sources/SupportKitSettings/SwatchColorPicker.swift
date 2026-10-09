@@ -1,6 +1,6 @@
 import SwiftUI
 
-#if canImport(AppKit)
+#if os(macOS)
   import AppKit
 #endif
 
@@ -115,7 +115,7 @@ public struct SwatchColorWell<Label: View>: View {
 
   @State private var isPresented = false
 
-  #if canImport(AppKit)
+  #if os(macOS)
     @State private var panel = ColourPanelLink()
   #endif
 
@@ -155,7 +155,7 @@ public struct SwatchColorWell<Label: View>: View {
   /// The system's own picker, for the eyedropper and the wheel. On the Mac the panel outlives
   /// the popover it was opened from, so the link to it belongs to the well.
   private func more() {
-    #if canImport(AppKit)
+    #if os(macOS)
       isPresented = false
       panel.open(value, showsAlpha: supportsOpacity) { choose($0) }
     #endif
@@ -196,7 +196,7 @@ private struct SwatchPopover: View {
         .onSubmit(commit)
         .onChange(of: isTyping) { _, typing in if !typing { commit() } }
         Spacer()
-        #if canImport(AppKit)
+        #if os(macOS)
           Button(localized("More…"), action: more)
         #else
           ColorPicker(
@@ -307,7 +307,7 @@ private struct ColourChip: View {
   }
 }
 
-#if canImport(AppKit)
+#if os(macOS)
   /// The shared colour panel, pointed at the row that last opened it. The panel keeps no strong
   /// hold on its target, so the link lets go of it when the row goes.
   @MainActor
