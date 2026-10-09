@@ -41,8 +41,14 @@ public struct ProBadge: View {
 
 #Preview("Locked, light and dark") {
   VStack(spacing: 12) {
-    HStack { Text(verbatim: "Arcade Effects"); ProBadge(state: .locked(price: "$9.99")) }
-    HStack { Text(verbatim: "Arcade Effects"); ProBadge(state: .unlocked) }
+    HStack {
+      Text(verbatim: "Arcade Effects")
+      ProBadge(state: .locked(price: "$9.99"))
+    }
+    HStack {
+      Text(verbatim: "Arcade Effects")
+      ProBadge(state: .unlocked)
+    }
   }
   .padding()
 }

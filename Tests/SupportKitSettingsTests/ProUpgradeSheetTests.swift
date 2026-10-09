@@ -6,8 +6,9 @@ import Testing
 struct ProUpgradeSheetTests {
   @Test("Unlock carries the price once the store has one")
   func buyWithAPrice() {
-    #expect(ProUpgradeSheet.action(state: .locked(price: "$9.99"), isWorking: false)
-      == .buy(price: "$9.99"))
+    #expect(
+      ProUpgradeSheet.action(state: .locked(price: "$9.99"), isWorking: false)
+        == .buy(price: "$9.99"))
   }
 
   @Test("No product: Unavailable, not an Unlock that fails")

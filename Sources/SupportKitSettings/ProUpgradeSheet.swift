@@ -207,9 +207,12 @@ public struct ProUpgradeSheet: View {
     productName: "Pupitre Pro", headline: "The Concert Grand Is in Pupitre Pro",
     alwaysFree: "Level 1 of every tune, and your own MIDI files, are free.",
     features: [
-      ProFeatureEntry(id: "grand", title: LocalizedStringResource(stringLiteral: "The Concert Grand"), systemImage: "pianokeys"),
       ProFeatureEntry(
-        id: "library", title: LocalizedStringResource(stringLiteral: "Every level and every piece"), systemImage: "books.vertical"),
+        id: "grand", title: LocalizedStringResource(stringLiteral: "The Concert Grand"),
+        systemImage: "pianokeys"),
+      ProFeatureEntry(
+        id: "library", title: LocalizedStringResource(stringLiteral: "Every level and every piece"),
+        systemImage: "books.vertical"),
     ],
     state: .locked(price: "$9.99"), purchase: {}, restore: {})
 }
@@ -217,6 +220,10 @@ public struct ProUpgradeSheet: View {
 #Preview("Unavailable") {
   ProUpgradeSheet(
     productName: "Pupitre Pro", headline: nil, alwaysFree: "Level 1 is free.",
-    features: [ProFeatureEntry(id: "grand", title: LocalizedStringResource(stringLiteral: "The Concert Grand"), systemImage: "pianokeys")],
+    features: [
+      ProFeatureEntry(
+        id: "grand", title: LocalizedStringResource(stringLiteral: "The Concert Grand"),
+        systemImage: "pianokeys")
+    ],
     state: .locked(price: nil), purchase: {}, restore: {})
 }
