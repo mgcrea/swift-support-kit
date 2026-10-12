@@ -22,6 +22,10 @@ struct CatalogResolutionTests {
       (CatalogScanner.Module.settings, "Version", "Version"),
       (CatalogScanner.Module.settings, "System", "Système"),
       (CatalogScanner.Module.menuBar, "Quit", "Quitter"),
+      (
+        CatalogScanner.Module.store, "No previous purchase was found on this Apple Account.",
+        "Aucun achat précédent n’a été trouvé sur ce compte Apple."
+      ),
     ])
   func frenchResolves(module: CatalogScanner.Module, key: String, expected: String) throws {
     let french = try CompiledCatalog.table(for: module, language: "fr")

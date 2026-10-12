@@ -15,15 +15,16 @@ import Foundation
 /// all. Ported from balise's `BaliseLocalizationTests`, which found every trap
 /// documented below first.
 enum CatalogScanner {
-  /// A UI target, laid out as `Sources/<name>/Resources/Localizable.xcstrings`.
+  /// A target that shows text, laid out as `Sources/<name>/Resources/Localizable.xcstrings`.
   struct Module {
     var name: String
 
     static let ui = Module(name: "SupportKitUI")
     static let settings = Module(name: "SupportKitSettings")
     static let menuBar = Module(name: "SupportKitMenuBar")
+    static let store = Module(name: "SupportKitStore")
 
-    static let all: [Module] = [.ui, .settings, .menuBar]
+    static let all: [Module] = [.ui, .settings, .menuBar, .store]
   }
 
   /// `.../Tests/SupportKitLocalizationTests/CatalogScanner.swift` → `.../Sources`.

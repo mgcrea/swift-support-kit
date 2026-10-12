@@ -271,6 +271,62 @@ public final class ProStore {
     productLoad = nil
   }
 
+  // MARK: - Purchase
+
+  /// Buys. Asks the store for the product again first when it has none. Ignored while a
+  /// purchase or restore is in flight.
+  public func purchase() async {
+    guard runsStoreKit, !isWorking else { return }
+    isWorking = true
+    lastError = nil
+    isPurchasePending = false
+    defer { isWorking = false }
+    await ensureProduct()
+    guard let product else {
+      lastError = localized("The App Store did not return the purchase. Try again in a moment.")
+      return
+    }
+    do {
+      switch try await product.purchase() {
+      case .verified(let transaction):
+        // Granted here, not re-read: `currentEntitlements` lags behind a purchase.
+        if !transaction.isRevoked, entitles(transaction.productID) { grant() }
+        await transaction.finish()
+      case .unverified(let reason):
+        lastError = localized("The purchase could not be verified: \(reason)")
+      case .pending:
+        isPurchasePending = true
+      case .cancelled:
+        break
+      }
+    } catch {
+      lastError = error.localizedDescription
+    }
+  }
+
+  /// `AppStore.sync()`, then what it brought back. Says so when there is still nothing.
+  public func restore() async {
+    guard runsStoreKit, !isWorking else { return }
+    isWorking = true
+    lastError = nil
+    defer { isWorking = false }
+    do {
+      try await client.sync()
+    } catch {
+      lastError = error.localizedDescription
+    }
+    for update in await client.unfinished() { await handle(update) }
+    await refresh()
+    if !isPro, lastError == nil {
+      lastError = localized("No previous purchase was found on this Apple Account.")
+    }
+  }
+
+  /// For an app whose paywall opens on a stale error from an earlier attempt.
+  public func clearError() {
+    lastError = nil
+  }
+
   // MARK: - Without a store
 
   /// For App Intents and share extensions: a verified, unrevoked purchase of any of
