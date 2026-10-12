@@ -26,4 +26,25 @@ struct ProUpgradeSheetTests {
   func ownedOnceUnlocked() {
     #expect(ProUpgradeSheet.action(state: .unlocked, isWorking: false) == .owned)
   }
+
+  @Test("No product, and the app can ask again: Try Again")
+  func retryWhenTheAppCanRetry() {
+    #expect(
+      ProUpgradeSheet.action(state: .locked(price: nil), isWorking: false, canRetry: true)
+        == .retry)
+  }
+
+  @Test("Try Again only when there is no price")
+  func noRetryWithAPrice() {
+    #expect(
+      ProUpgradeSheet.action(state: .locked(price: "$9.99"), isWorking: false, canRetry: true)
+        == .buy(price: "$9.99"))
+  }
+
+  @Test("Asking again shows progress, not a second Try Again")
+  func retryInFlightShowsProgress() {
+    #expect(
+      ProUpgradeSheet.action(state: .locked(price: nil), isWorking: true, canRetry: true)
+        == .working)
+  }
 }
