@@ -38,7 +38,14 @@ extension StoreClient {
           continuation.onTermination = { _ in task.cancel() }
         }
       },
-      sync: { try await AppStore.sync() },
+      sync: {
+        do {
+          try await AppStore.sync()
+        } catch StoreKitError.userCancelled {
+          // The person dismissed the sign-in prompt: the store's word for that.
+          throw CancellationError()
+        }
+      },
       originalPurchase: {
         guard let result = try? await AppTransaction.shared, case .verified(let app) = result
         else { return .inconclusive }
@@ -51,7 +58,13 @@ extension StoreClient {
 extension ProductInfo {
   init(product: Product) {
     self.init(id: product.id, displayPrice: product.displayPrice) {
-      switch try await product.purchase() {
+      let result: Product.PurchaseResult
+      do {
+        result = try await product.purchase()
+      } catch StoreKitError.userCancelled {
+        return .cancelled
+      }
+      return switch result {
       case .success(.verified(let transaction)): .verified(TransactionInfo(transaction))
       case .success(.unverified(_, let error)): .unverified(reason: error.localizedDescription)
       case .pending: .pending

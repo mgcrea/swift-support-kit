@@ -132,6 +132,7 @@ public struct ProSettingsPane<Notes: View>: View {
   private let features: [ProFeatureEntry]
   private let alwaysFree: LocalizedStringKey?
   private let isWorking: Bool
+  private let isLoadingProduct: Bool
   private let errorMessage: String?
   private let isPending: Bool
   private let unlockedDetail: LocalizedStringKey?
@@ -146,8 +147,10 @@ public struct ProSettingsPane<Notes: View>: View {
   ///   - productName: "Contour Pro", in the app's catalog.
   ///   - alwaysFree: a sentence on what stays free, drawn under the list. Worth
   ///     passing: a pitch that says only what is locked reads as if everything is.
-  ///   - isWorking: a purchase or restore is in flight, or the product is being asked for
-  ///     again; both buttons disable. With `ProStore`, `pro.isWorking || pro.isLoadingProduct`.
+  ///   - isWorking: a purchase or restore is in flight; both buttons disable.
+  ///   - isLoadingProduct: the product is being asked for again. The action shows progress
+  ///     and Restore stays enabled: it does not need the product, and a slow lookup must not
+  ///     take it away.
   ///   - errorMessage: the store's last error, already worded by the app.
   ///   - isPending: a purchase waiting for Ask to Buy or a deferred payment; draws the
   ///     kit's note, so an app need not word its own in `notes`.
@@ -175,6 +178,7 @@ public struct ProSettingsPane<Notes: View>: View {
     features: [ProFeatureEntry],
     alwaysFree: LocalizedStringKey? = nil,
     isWorking: Bool = false,
+    isLoadingProduct: Bool = false,
     errorMessage: String? = nil,
     isPending: Bool = false,
     unlockedDetail: LocalizedStringKey? = nil,
@@ -191,6 +195,7 @@ public struct ProSettingsPane<Notes: View>: View {
     self.features = features
     self.alwaysFree = alwaysFree
     self.isWorking = isWorking
+    self.isLoadingProduct = isLoadingProduct
     self.errorMessage = errorMessage
     self.isPending = isPending
     self.unlockedDetail = unlockedDetail
@@ -208,6 +213,14 @@ public struct ProSettingsPane<Notes: View>: View {
   nonisolated static func showsTryAgain(state: ProPurchaseState, hasRetry: Bool) -> Bool {
     hasRetry && state == .locked(price: nil)
   }
+
+  /// Whether the action shows progress: a purchase or restore, or asking for the product again.
+  nonisolated static func actionShowsProgress(isWorking: Bool, isLoadingProduct: Bool) -> Bool {
+    isWorking || isLoadingProduct
+  }
+
+  /// Only a purchase or restore in flight disables Restore, never a product lookup.
+  nonisolated static func restoreIsDisabled(isWorking: Bool) -> Bool { isWorking }
 
   public var body: some View {
     Form {
@@ -233,7 +246,9 @@ public struct ProSettingsPane<Notes: View>: View {
               .foregroundStyle(isUnlocked ? AnyShapeStyle(.green) : AnyShapeStyle(.tint))
           }
           Spacer(minLength: 0)
-          if isWorking { ProgressView().controlSize(.small) }
+          if Self.actionShowsProgress(isWorking: isWorking, isLoadingProduct: isLoadingProduct) {
+            ProgressView().controlSize(.small)
+          }
           actionButton
         }
         notes
@@ -253,7 +268,7 @@ public struct ProSettingsPane<Notes: View>: View {
         // non-consumable, and hiding it once unlocked hides it from the one
         // person who needs it: somebody whose entitlement failed to load.
         Button(localized("Restore Purchase"), action: restore)
-          .disabled(isWorking)
+          .disabled(Self.restoreIsDisabled(isWorking: isWorking))
       }
 
       ProFeaturesSection(
@@ -291,7 +306,7 @@ public struct ProSettingsPane<Notes: View>: View {
     case .locked(nil):
       if let retry {
         Button(localized("Try Again"), action: retry)
-          .disabled(isWorking)
+          .disabled(isWorking || isLoadingProduct)
           .help(localized("The App Store could not be reached."))
       } else {
         Button(localized("Unavailable")) {}
@@ -368,6 +383,7 @@ extension ProSettingsPane where Notes == EmptyView {
     features: [ProFeatureEntry],
     alwaysFree: LocalizedStringKey? = nil,
     isWorking: Bool = false,
+    isLoadingProduct: Bool = false,
     errorMessage: String? = nil,
     isPending: Bool = false,
     unlockedDetail: LocalizedStringKey? = nil,
@@ -379,7 +395,8 @@ extension ProSettingsPane where Notes == EmptyView {
   ) {
     self.init(
       app: app, productName: productName, state: state, features: features,
-      alwaysFree: alwaysFree, isWorking: isWorking, errorMessage: errorMessage,
+      alwaysFree: alwaysFree, isWorking: isWorking, isLoadingProduct: isLoadingProduct,
+      errorMessage: errorMessage,
       isPending: isPending, unlockedDetail: unlockedDetail, featuresFooter: featuresFooter,
       installedVersion: installedVersion, purchase: purchase, retry: retry, restore: restore
     ) { EmptyView() }

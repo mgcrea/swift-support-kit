@@ -140,6 +140,24 @@ struct ProStorePurchaseTests {
     #expect(store.lastError != nil)
   }
 
+  @Test("Dismissing the sign-in prompt on Restore is not an error")
+  func cancelledRestoreIsNotAnError() async {
+    let script = StoreScript()
+    let store = await readyStore(script, script.product(outcome: .cancelled))
+    await script.cancelSync()
+    await store.restore()
+    #expect(store.lastError == nil)
+    #expect(!store.isWorking)
+  }
+
+  @Test("A purchase cancelled by a throw is not an error")
+  func cancelledPurchaseThrowIsNotAnError() async {
+    let script = StoreScript()
+    let store = await readyStore(script, script.failingProduct(CancellationError()))
+    await store.purchase()
+    #expect(store.lastError == nil)
+  }
+
   @Test("clearError clears")
   func clearErrorClears() async {
     let script = StoreScript()

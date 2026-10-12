@@ -101,6 +101,23 @@ struct ProStoreProductTests {
     #expect(await script.productRequests == 1)
   }
 
+  @Test("A lookup that never answers times out as Unavailable, and Try Again asks again")
+  func aLookupThatNeverAnswersTimesOut() async {
+    let script = StoreScript()
+    _ = await script.gateProducts()
+    let store = makeStore(script)
+    store.productTimeout = .milliseconds(50)
+    store.start()
+    await store.settled()
+    #expect(store.isProductUnavailable)
+    #expect(store.purchaseState == .locked(price: nil))
+    await script.setProducts([script.product(outcome: .cancelled)])
+    store.start()
+    await store.settled()
+    #expect(store.displayPrice == "$5.99")
+    #expect(await script.productRequests == 2)
+  }
+
   @Test("Forced mode is never Unavailable")
   func forcedIsNeverUnavailable() {
     let store = makeStore(StoreScript()) { $0.mode = .forced(isPro: false, price: nil) }

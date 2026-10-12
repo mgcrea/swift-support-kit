@@ -93,6 +93,9 @@ public final class ProStore {
   @ObservationIgnored private var firstRead: Task<Void, Never>?
   @ObservationIgnored private var listener: Task<Void, Never>?
   @ObservationIgnored private var grants = 0
+  @ObservationIgnored private var reads = 0
+  /// How long a product lookup may take before it counts as unanswered.
+  @ObservationIgnored var productTimeout: Duration = .seconds(30)
 
   public convenience init(_ configuration: Configuration, client: StoreClient = .live) {
     self.init(
@@ -169,12 +172,15 @@ public final class ProStore {
   private func readFirst() async {
     for update in await client.unfinished() { await handle(update) }
     await refresh()
-    if !Task.isCancelled { isEntitlementResolved = true }
   }
 
-  /// Re-reads what the App Store says. Discarded when a grant landed meanwhile, and when the
-  /// task was cancelled.
+  /// Re-reads what the App Store says. Discarded when a grant landed meanwhile, when a later
+  /// read started meanwhile (the newest question gets the last word: a first read that stalled
+  /// must not undo a restore, nor an old read that saw a purchase undo the refund after it),
+  /// and when the task was cancelled.
   func refresh() async {
+    reads += 1
+    let read = reads
     let generation = grants
     let purchased = await client.isEntitled(to: entitlingIDs)
     var upgraded: Bool? = false
@@ -185,7 +191,8 @@ public final class ProStore {
       case .inconclusive: upgraded = nil
       }
     }
-    guard !Task.isCancelled, grants == generation else { return }
+    guard !Task.isCancelled, read == reads, grants == generation else { return }
+    isEntitlementResolved = true
     if purchased {
       apply(true, reason: .purchased)
     } else if upgraded == true {
@@ -216,6 +223,7 @@ public final class ProStore {
 
   private func apply(_ value: Bool, reason: UnlockReason?) {
     let changed = value != isPro
+    isEntitlementResolved = true
     isPro = value
     unlockReason = value ? reason : nil
     if value {
@@ -246,10 +254,11 @@ public final class ProStore {
     isLoadingProduct = true
     let client = client
     let id = configuration.productID
+    let timeout = productTimeout
     productLoad = Task { [weak self] in
       var answer: ProductInfo?
       do {
-        answer = try await client.products([id]).first
+        answer = try await Self.answer(within: timeout) { try await client.products([id]) }.first
         if answer == nil {
           storeLog.error("The App Store returned no product \(id, privacy: .public)")
         }
@@ -258,6 +267,29 @@ public final class ProStore {
           "Loading \(id, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
       }
       self?.finishLoading(answer)
+    }
+  }
+
+  struct TimedOut: Error {}
+
+  /// Races `operation` against `timeout`. Not a task group, which would wait at its end for an
+  /// operation that ignores cancellation: a lookup that never answers is the case this is for.
+  nonisolated static func answer<T: Sendable>(
+    within timeout: Duration, _ operation: @escaping @Sendable () async throws -> T
+  ) async throws -> T {
+    let pending = OSAllocatedUnfairLock<CheckedContinuation<T, any Error>?>(initialState: nil)
+    return try await withCheckedThrowingContinuation { continuation in
+      pending.withLock { $0 = continuation }
+      let timer = Task {
+        try? await Task.sleep(for: timeout)
+        pending.withLock { $0.take() }?.resume(throwing: TimedOut())
+      }
+      Task {
+        let result: Result<T, any Error>
+        do { result = .success(try await operation()) } catch { result = .failure(error) }
+        timer.cancel()
+        pending.withLock { $0.take() }?.resume(with: result)
+      }
     }
   }
 
@@ -299,6 +331,8 @@ public final class ProStore {
       case .cancelled:
         break
       }
+    } catch is CancellationError {
+      // Dismissed, by the person or by the task: nothing to say.
     } catch {
       lastError = error.localizedDescription
     }
@@ -312,6 +346,9 @@ public final class ProStore {
     defer { isWorking = false }
     do {
       try await client.sync()
+    } catch is CancellationError {
+      // The person dismissed the sign-in prompt: they chose not to restore.
+      return
     } catch {
       lastError = error.localizedDescription
     }
