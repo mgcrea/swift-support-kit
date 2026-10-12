@@ -71,12 +71,14 @@ anything in this list. A test asserts it.
 .package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.9.0"))
 ```
 
-Five products. `SupportKit` is Foundation-only, so it unit-tests without a host app and imports
+Eight products; the main ones are below, and `SupportKitMemory`, `SupportKitModels` and
+`SupportKitStore` have their own sections. `SupportKit` is Foundation-only, so it unit-tests without a host app and imports
 from non-UI modules. `SupportKitUI` adds the SwiftUI surface. `SupportKitSettings` adds the
 settings scaffold, kept separate because it is the part that will churn. `SupportKitMenuBar`
 adds the menu bar panel, which is macOS-only. `SupportKitToolbar` adds the two-line toolbar
 controls, also macOS-only, and kept apart because it is the one module that draws glass — see
-[Styling](#styling).
+[Styling](#styling). `SupportKitStore` is StoreKit's half of Settings ▸ Pro — see
+[The Pro store](#the-pro-store).
 
 ## The Help menu
 
@@ -262,8 +264,8 @@ SwatchColorWell(value: red, default: .hex(0xD62828), palette: notes) { store($0?
 ### Pro gates
 
 Settings ▸ Pro is where somebody checks what they own. The gate is where they meet Pro: a
-locked control, and the sheet it raises. Three pieces, none of which calls StoreKit; the store
-stays in each app.
+locked control, and the sheet it raises. Three pieces, none of which calls StoreKit: they take
+values and closures, which [`ProStore`](#the-pro-store) supplies, or the app's own store.
 
 - `ProBadge(state:)`: the "PRO" capsule beside a locked control. It draws nothing while the
   state is `.unknown`, because a badge drawn before the store answers is shown to somebody who
@@ -283,11 +285,53 @@ Toggle("Arcade Effects", isOn: arcadeBinding)  // sets `upgrade` when locked
   } content: { request in
     ProUpgradeSheet(
       productName: "Pupitre Pro", headline: request.headline, alwaysFree: alwaysFree,
-      features: ProFeature.entries, state: store.purchaseState, isWorking: store.isWorking,
-      errorMessage: store.lastError, purchase: { Task { await store.purchase() } },
-      restore: { Task { await store.restore() } })
+      features: ProFeature.entries, state: store.purchaseState,
+      isWorking: store.isWorking || store.isLoadingProduct, errorMessage: store.lastError,
+      isPending: store.isPurchasePending, purchase: { Task { await store.purchase() } },
+      retry: { store.start() }, restore: { Task { await store.restore() } })
   }
 ```
+
+With `retry`, a product that did not load draws Try Again instead of a disabled Unavailable,
+and is asked for once as the sheet or pane appears. `isPending` draws the kit's note for a
+purchase waiting on Ask to Buy. `ProSettingsPane` takes the same three.
+
+## The Pro store
+
+`SupportKitStore`: the Pro unlock, one non-consumable, what the App Store says about it, and
+buying and restoring it. Every StoreKit app in the fleet sells exactly that, so the lifecycle
+lives here once.
+
+```swift
+import SupportKitStore
+
+let pro = ProStore(.init(
+  productID: "io.mgcrea.KVExplorer.pro",
+  mode: ScreenshotMode.isActive ? .forced(isPro: true, price: nil) : .live,
+  cacheKey: "kv-explorer.pro-unlocked"))
+pro.start()   // at launch, and from every view that wants a price
+```
+
+It owns the first entitlement read, retries a product that did not load each time `start()`
+is called, grants straight from a verified purchase, and never lets a read that began before
+a grant undo it. `purchaseState` feeds `ProSettingsPane`, `ProUpgradeSheet` and `ProBadge`;
+an app with its own paywall reads `isProductUnavailable` and calls `start()` for Try Again.
+
+- `alsoEntitling`: retired product ids that still grant Pro.
+- `upgradeFromPaid`: buyers of the paid app at or before this version get Pro, in
+  production only. It is compared with `AppTransaction.originalAppVersion`, which is the
+  marketing version on macOS and the **build number** on iOS.
+- `cacheKey`: a cached unlock draws Unlocked from the first frame; StoreKit's answer still
+  corrects it.
+- `onChange`: called when `isPro` changes, never for the initial value.
+- `.forced(isPro:price:)`: screenshots, demo mode, and an app not selling yet. StoreKit is
+  never touched.
+- A test host with the `.live` client starts nothing and settles locked. A hosted suite that
+  drives StoreKit through an `SKTestSession` passes `client: .storeKitTesting`; `SKTestSession`
+  does not run under `swift test`, so that suite lives in an app's test target.
+- `ProStore.hasEntitlement(_:)`: for App Intents and share extensions, with no store.
+
+The paywall flag, the gate and partial grandfathering stay in the app, built on `isPro`.
 
 ## The menu bar panel
 
