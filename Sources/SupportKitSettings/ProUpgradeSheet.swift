@@ -1,3 +1,4 @@
+import SupportKit
 import SwiftUI
 
 /// The sheet raised where a Pro feature was asked for: what was reached for, what stays free,
