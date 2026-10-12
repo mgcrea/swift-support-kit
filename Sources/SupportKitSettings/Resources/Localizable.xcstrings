@@ -337,6 +337,18 @@
         }
       }
     },
+    "Try Again": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réessayer"
+          }
+        }
+      }
+    },
     "Unavailable": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -369,6 +381,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Version"
+          }
+        }
+      }
+    },
+    "Waiting for approval. The purchase completes as soon as it is approved.": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En attente d’approbation. L’achat se termine dès qu’il est approuvé."
           }
         }
       }

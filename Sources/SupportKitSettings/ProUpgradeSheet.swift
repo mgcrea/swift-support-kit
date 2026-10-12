@@ -9,10 +9,12 @@ import SwiftUI
 /// reads as if everything is locked. Its rows are the `ProFeatureEntry` list the app also
 /// gives `ProSettingsPane`, as Pochette and Cadence do, so the sheet and Settings cannot
 /// advertise different things. With no product it shows a disabled Unavailable rather than an
-/// Unlock that fails, as Pochette and Cadence do. It closes by itself once the purchase goes
-/// through; `proUpgradeSheet(item:isUnlocked:onUnlock:content:)` then finishes what was asked.
+/// Unlock that fails, as Pochette and Cadence do, or Try Again when the app passes `retry`. It
+/// closes by itself once the purchase goes through;
+/// `proUpgradeSheet(item:isUnlocked:onUnlock:content:)` then finishes what was asked.
 ///
-/// Takes values and closures, never a store, like `ProSettingsPane`.
+/// Takes values and closures, never a store, like `ProSettingsPane`. `SupportKitStore`'s
+/// `ProStore` supplies every one of them.
 public struct ProUpgradeSheet: View {
   /// What the Unlock position holds.
   public enum Action: Equatable {
@@ -21,16 +23,20 @@ public struct ProUpgradeSheet: View {
     case buy(price: String)
     /// The product did not load: offline, or not yet in App Store Connect.
     case unavailable
+    /// The product did not load and the app can ask again.
+    case retry
     case owned
   }
 
   /// `nonisolated` so tests and callers off the main actor can ask without hopping to it.
-  public nonisolated static func action(state: ProPurchaseState, isWorking: Bool) -> Action {
+  public nonisolated static func action(
+    state: ProPurchaseState, isWorking: Bool, canRetry: Bool = false
+  ) -> Action {
     if isWorking { return .working }
     switch state {
     case .unknown: return .working
     case .locked(let price?): return .buy(price: price)
-    case .locked(nil): return .unavailable
+    case .locked(nil): return canRetry ? .retry : .unavailable
     case .unlocked: return .owned
     }
   }
@@ -42,8 +48,10 @@ public struct ProUpgradeSheet: View {
   private let state: ProPurchaseState
   private let isWorking: Bool
   private let errorMessage: String?
+  private let isPending: Bool
   private let installedVersion: String
   private let purchase: () -> Void
+  private let retry: (() -> Void)?
   private let restore: () -> Void
 
   @Environment(\.dismiss) private var dismiss
@@ -54,8 +62,14 @@ public struct ProUpgradeSheet: View {
   ///     Pupitre Pro".
   ///   - alwaysFree: what stays free, in the app's catalog, drawn under the headline.
   ///   - features: the same entries the app passes `ProSettingsPane`.
+  ///   - isWorking: a purchase or restore is in flight, or the product is being asked for
+  ///     again. With `ProStore`, `pro.isWorking || pro.isLoadingProduct`.
   ///   - errorMessage: the store's last error, already worded by the app.
+  ///   - isPending: a purchase waiting for Ask to Buy or a deferred payment; draws the kit's
+  ///     note.
   ///   - purchase: buys. The sheet never calls StoreKit itself.
+  ///   - retry: asks the store again, `{ pro.start() }`. With it, a product that did not load
+  ///     gets Try Again and is asked for once as the sheet appears.
   public init(
     productName: LocalizedStringKey,
     headline: LocalizedStringKey?,
@@ -64,8 +78,10 @@ public struct ProUpgradeSheet: View {
     state: ProPurchaseState,
     isWorking: Bool = false,
     errorMessage: String? = nil,
+    isPending: Bool = false,
     installedVersion: String = ReleaseNotes.bundleVersion,
     purchase: @escaping () -> Void,
+    retry: (() -> Void)? = nil,
     restore: @escaping () -> Void
   ) {
     self.productName = productName
@@ -75,9 +91,15 @@ public struct ProUpgradeSheet: View {
     self.state = state
     self.isWorking = isWorking
     self.errorMessage = errorMessage
+    self.isPending = isPending
     self.installedVersion = installedVersion
     self.purchase = purchase
+    self.retry = retry
     self.restore = restore
+  }
+
+  private var currentAction: Action {
+    Self.action(state: state, isWorking: isWorking, canRetry: retry != nil)
   }
 
   public var body: some View {
@@ -108,12 +130,25 @@ public struct ProUpgradeSheet: View {
           .foregroundStyle(.red)
           .fixedSize(horizontal: false, vertical: true)
       }
+      if isPending {
+        Text(localized("Waiting for approval. The purchase completes as soon as it is approved."))
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+      if currentAction == .retry {
+        Text(localized("The App Store could not be reached."))
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
       Divider()
       footer
     }
     .padding(24)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("pro.upgrade")
+    // Once, as it appears: the price someone came for, without a tap on Try Again.
+    .onAppear { if currentAction == .retry { retry?() } }
     // Closed on success rather than left selling something the user now owns.
     .onChange(of: state) { _, new in if new == .unlocked { dismiss() } }
   }
@@ -179,7 +214,7 @@ public struct ProUpgradeSheet: View {
   }
 
   @ViewBuilder private var unlockButton: some View {
-    switch Self.action(state: state, isWorking: isWorking) {
+    switch currentAction {
     case .working:
       ProgressView().controlSize(.small)
     case .buy(let price):
@@ -195,6 +230,9 @@ public struct ProUpgradeSheet: View {
     case .unavailable:
       Button(localized("Unavailable")) {}
         .disabled(true)
+        .help(localized("The App Store could not be reached."))
+    case .retry:
+      Button(localized("Try Again")) { retry?() }
         .help(localized("The App Store could not be reached."))
     case .owned:
       EmptyView()
@@ -227,4 +265,15 @@ public struct ProUpgradeSheet: View {
         systemImage: "pianokeys")
     ],
     state: .locked(price: nil), purchase: {}, restore: {})
+}
+
+#Preview("Try Again") {
+  ProUpgradeSheet(
+    productName: "Pupitre Pro", headline: nil, alwaysFree: "Level 1 is free.",
+    features: [
+      ProFeatureEntry(
+        id: "grand", title: LocalizedStringResource(stringLiteral: "The Concert Grand"),
+        systemImage: "pianokeys")
+    ],
+    state: .locked(price: nil), purchase: {}, retry: {}, restore: {})
 }

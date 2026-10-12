@@ -1,42 +1,42 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "No previous purchase was found on this Apple Account." : {
-      "extractionState" : "manual",
-      "generatesSymbol" : false,
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucun achat précédent n’a été trouvé sur ce compte Apple."
+  "sourceLanguage": "en",
+  "strings": {
+    "No previous purchase was found on this Apple Account.": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun achat précédent n’a été trouvé sur ce compte Apple."
           }
         }
       }
     },
-    "The App Store did not return the purchase. Try again in a moment." : {
-      "extractionState" : "manual",
-      "generatesSymbol" : false,
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’App Store n’a pas renvoyé l’achat. Réessayez dans un instant."
+    "The App Store did not return the purchase. Try again in a moment.": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’App Store n’a pas renvoyé l’achat. Réessayez dans un instant."
           }
         }
       }
     },
-    "The purchase could not be verified: %@" : {
-      "extractionState" : "manual",
-      "generatesSymbol" : false,
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’achat n’a pas pu être vérifié : %@"
+    "The purchase could not be verified: %@": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’achat n’a pas pu être vérifié : %@"
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

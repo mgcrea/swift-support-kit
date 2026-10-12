@@ -122,8 +122,9 @@ public struct ProFeaturesSection: View {
 /// Not a paywall. The paywall interrupts at a locked feature and names it; this
 /// is where somebody comes to check what they own, or to restore, with nothing
 /// blocking them. It takes values and closures rather than a store, because
-/// every app's store is different (`ProStore`, `PurchaseManager`,
-/// `EntitlementStore`) and none of them belongs in this package.
+/// every app's store was different (`ProStore`, `PurchaseManager`,
+/// `EntitlementStore`), and an app moving to `SupportKitStore`'s `ProStore` can
+/// adopt the pane before the store or the other way round.
 public struct ProSettingsPane<Notes: View>: View {
   private let app: SupportApp
   private let productName: LocalizedStringKey
@@ -132,19 +133,24 @@ public struct ProSettingsPane<Notes: View>: View {
   private let alwaysFree: LocalizedStringKey?
   private let isWorking: Bool
   private let errorMessage: String?
+  private let isPending: Bool
   private let unlockedDetail: LocalizedStringKey?
   private let featuresFooter: LocalizedStringKey?
   private let notes: Notes
   private let installedVersion: String
   private let purchase: () -> Void
+  private let retry: (() -> Void)?
   private let restore: () -> Void
 
   /// - Parameters:
   ///   - productName: "Contour Pro", in the app's catalog.
   ///   - alwaysFree: a sentence on what stays free, drawn under the list. Worth
   ///     passing: a pitch that says only what is locked reads as if everything is.
-  ///   - isWorking: a purchase or restore is in flight; both buttons disable.
+  ///   - isWorking: a purchase or restore is in flight, or the product is being asked for
+  ///     again; both buttons disable. With `ProStore`, `pro.isWorking || pro.isLoadingProduct`.
   ///   - errorMessage: the store's last error, already worded by the app.
+  ///   - isPending: a purchase waiting for Ask to Buy or a deferred payment; draws the
+  ///     kit's note, so an app need not word its own in `notes`.
   ///   - featuresFooter: a caveat under the feature list, in the app's catalog. See
   ///     `ProFeaturesSection`'s `footer`.
   ///   - notes: drawn in the first section, under the status line and beside the actions:
@@ -159,6 +165,9 @@ public struct ProSettingsPane<Notes: View>: View {
   ///     unlocked state a plain "thank you" does not explain.
   ///   - purchase: buy, or open the app's upgrade sheet. The pane never calls
   ///     StoreKit itself.
+  ///   - retry: asks the store again, `{ pro.start() }`. With it, a product that did not
+  ///     load gets Try Again in place of Unavailable and is asked for once as the pane
+  ///     appears.
   public init(
     app: SupportApp,
     productName: LocalizedStringKey,
@@ -167,10 +176,12 @@ public struct ProSettingsPane<Notes: View>: View {
     alwaysFree: LocalizedStringKey? = nil,
     isWorking: Bool = false,
     errorMessage: String? = nil,
+    isPending: Bool = false,
     unlockedDetail: LocalizedStringKey? = nil,
     featuresFooter: LocalizedStringKey? = nil,
     installedVersion: String = ReleaseNotes.bundleVersion,
     purchase: @escaping () -> Void,
+    retry: (() -> Void)? = nil,
     restore: @escaping () -> Void,
     @ViewBuilder notes: () -> Notes
   ) {
@@ -181,15 +192,22 @@ public struct ProSettingsPane<Notes: View>: View {
     self.alwaysFree = alwaysFree
     self.isWorking = isWorking
     self.errorMessage = errorMessage
+    self.isPending = isPending
     self.unlockedDetail = unlockedDetail
     self.featuresFooter = featuresFooter
     self.notes = notes()
     self.installedVersion = installedVersion
     self.purchase = purchase
+    self.retry = retry
     self.restore = restore
   }
 
   private var isUnlocked: Bool { state == .unlocked }
+
+  /// Whether the action is Try Again: no product, and the app passed a way to ask again.
+  nonisolated static func showsTryAgain(state: ProPurchaseState, hasRetry: Bool) -> Bool {
+    hasRetry && state == .locked(price: nil)
+  }
 
   public var body: some View {
     Form {
@@ -219,6 +237,12 @@ public struct ProSettingsPane<Notes: View>: View {
           actionButton
         }
         notes
+        if isPending {
+          Text(localized("Waiting for approval. The purchase completes as soon as it is approved."))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
         if let errorMessage {
           Text(errorMessage)
             .font(.caption)
@@ -248,6 +272,8 @@ public struct ProSettingsPane<Notes: View>: View {
     .formStyle(.grouped)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("settings.pro.content")
+    // Once, as it appears: whoever opened the pane came to see the price.
+    .onAppear { if Self.showsTryAgain(state: state, hasRetry: retry != nil) { retry?() } }
   }
 
   @ViewBuilder private var actionButton: some View {
@@ -263,9 +289,15 @@ public struct ProSettingsPane<Notes: View>: View {
         .buttonStyle(.borderedProminent)
         .disabled(isWorking)
     case .locked(nil):
-      Button(localized("Unavailable")) {}
-        .disabled(true)
-        .help(localized("The App Store could not be reached."))
+      if let retry {
+        Button(localized("Try Again"), action: retry)
+          .disabled(isWorking)
+          .help(localized("The App Store could not be reached."))
+      } else {
+        Button(localized("Unavailable")) {}
+          .disabled(true)
+          .help(localized("The App Store could not be reached."))
+      }
     }
   }
 
@@ -281,6 +313,7 @@ public struct ProSettingsPane<Notes: View>: View {
     case .unknown: localized("Checking your purchase…")
     case .unlocked:
       localized("Everything is unlocked. Thank you for supporting \(app.displayName).")
+    case .locked(nil) where retry != nil: localized("The App Store could not be reached.")
     case .locked: localized("A one-time purchase. No subscription.")
     }
   }
@@ -336,17 +369,19 @@ extension ProSettingsPane where Notes == EmptyView {
     alwaysFree: LocalizedStringKey? = nil,
     isWorking: Bool = false,
     errorMessage: String? = nil,
+    isPending: Bool = false,
     unlockedDetail: LocalizedStringKey? = nil,
     featuresFooter: LocalizedStringKey? = nil,
     installedVersion: String = ReleaseNotes.bundleVersion,
     purchase: @escaping () -> Void,
+    retry: (() -> Void)? = nil,
     restore: @escaping () -> Void
   ) {
     self.init(
       app: app, productName: productName, state: state, features: features,
       alwaysFree: alwaysFree, isWorking: isWorking, errorMessage: errorMessage,
-      unlockedDetail: unlockedDetail, featuresFooter: featuresFooter,
-      installedVersion: installedVersion, purchase: purchase, restore: restore
+      isPending: isPending, unlockedDetail: unlockedDetail, featuresFooter: featuresFooter,
+      installedVersion: installedVersion, purchase: purchase, retry: retry, restore: restore
     ) { EmptyView() }
   }
 }
