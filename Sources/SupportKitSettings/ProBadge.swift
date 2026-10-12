@@ -1,3 +1,4 @@
+import SupportKit
 import SwiftUI
 
 /// The mark beside a control Pro unlocks: a "PRO" capsule, white on the accent colour.
