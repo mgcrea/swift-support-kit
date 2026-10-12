@@ -1,7 +1,7 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
-// Seven products, deliberately split.
+// Eight products, deliberately split.
 //
 // `SupportKit` is Foundation-only, so it can be unit-tested without a host app
 // and imported from a non-UI module. `SupportKitUI` is the SwiftUI surface. An
@@ -30,6 +30,11 @@ import PackageDescription
 // nothing either, and links Core ML and CryptoKit, which no app wanting a Help
 // menu should pay for.
 //
+// `SupportKitStore` is the Pro purchase: StoreKit's half of what `SupportKitSettings`
+// draws. Its own product because it links StoreKit, which an app wanting the Help menu
+// should not pay for, and because it draws nothing: the sheet and the pane take values and
+// closures, never a store, so the two halves stay independent and an app can adopt either.
+//
 // The platform floor follows the consuming apps, which are now all on macOS 26
 // and iOS 26 — checked target by target, including Cupertino's bridge helper at
 // macOS 14, which links no package product and so does not hold the floor down.
@@ -54,7 +59,8 @@ import PackageDescription
 // of them rebuilt the Help menu and the support rows by hand rather than link
 // them. Every string these targets draw goes through `localized(_:)`, which names
 // `.module`, and `SupportKitLocalizationTests` holds the catalogs to the call
-// sites.
+// sites. `SupportKitStore` draws nothing but owns a catalog too, for the purchase
+// errors an app shows as they are.
 //
 // `SupportKit` has no catalog on purpose. Its English — the issue template, the
 // clipboard summary, the mail body — is read by the maintainer, not shown in the
@@ -71,6 +77,7 @@ let package = Package(
     .library(name: "SupportKitToolbar", targets: ["SupportKitToolbar"]),
     .library(name: "SupportKitMemory", targets: ["SupportKitMemory"]),
     .library(name: "SupportKitModels", targets: ["SupportKitModels"]),
+    .library(name: "SupportKitStore", targets: ["SupportKitStore"]),
   ],
   targets: [
     .target(name: "SupportKit"),
@@ -96,12 +103,19 @@ let package = Package(
     .target(name: "SupportKitMemory"),
     // No catalog: its error messages are English an app rewords through `describe`.
     .target(name: "SupportKitModels"),
+    // A catalog: its purchase errors are shown to the user as they are.
+    .target(
+      name: "SupportKitStore",
+      dependencies: ["SupportKit"],
+      resources: [.process("Resources")]
+    ),
     .testTarget(name: "SupportKitTests", dependencies: ["SupportKit"]),
     .testTarget(name: "SupportKitSettingsTests", dependencies: ["SupportKitSettings"]),
     .testTarget(name: "SupportKitMenuBarTests", dependencies: ["SupportKitMenuBar"]),
     .testTarget(name: "SupportKitToolbarTests", dependencies: ["SupportKitToolbar"]),
     .testTarget(name: "SupportKitMemoryTests", dependencies: ["SupportKitMemory"]),
     .testTarget(name: "SupportKitModelsTests", dependencies: ["SupportKitModels"]),
+    .testTarget(name: "SupportKitStoreTests", dependencies: ["SupportKitStore"]),
     // Depends on no module: it reads the sources and the catalogs off disk, so a
     // lookup that happens to resolve at runtime for the wrong reason cannot fool it.
     .testTarget(name: "SupportKitLocalizationTests"),
