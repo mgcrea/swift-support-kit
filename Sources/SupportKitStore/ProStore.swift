@@ -130,6 +130,12 @@ public final class ProStore {
     return .locked(price: displayPrice)
   }
 
+  /// The store answered and gave no product, and is not asking again right now. The views
+  /// offer Try Again.
+  public var isProductUnavailable: Bool {
+    runsStoreKit && isProductAnswered && !isLoadingProduct && displayPrice == nil
+  }
+
   /// Live, and not a test host running `.live`.
   var runsStoreKit: Bool {
     guard case .live = configuration.mode else { return false }
@@ -149,11 +155,15 @@ public final class ProStore {
       }
       firstRead = Task { [weak self] in await self?.readFirst() }
     }
+    // The retry: a lookup that failed once (offline at launch, a storefront the product is
+    // not sold in) would otherwise leave Unlock dead until the next launch.
+    if product == nil, productLoad == nil { loadProduct() }
   }
 
   /// Waits for the work `start()` began. For tests.
   func settled() async {
     await firstRead?.value
+    await productLoad?.value
   }
 
   private func readFirst() async {
@@ -221,6 +231,45 @@ public final class ProStore {
   }
 
   func entitles(_ productID: String) -> Bool { entitlingIDs.contains(productID) }
+
+  // MARK: - Product
+
+  /// Returns at once when the product is loaded; waits for a load already in flight; otherwise
+  /// starts one and waits for it.
+  public func ensureProduct() async {
+    guard runsStoreKit, product == nil else { return }
+    if productLoad == nil { loadProduct() }
+    await productLoad?.value
+  }
+
+  private func loadProduct() {
+    isLoadingProduct = true
+    let client = client
+    let id = configuration.productID
+    productLoad = Task { [weak self] in
+      var answer: ProductInfo?
+      do {
+        answer = try await client.products([id]).first
+        if answer == nil {
+          storeLog.error("The App Store returned no product \(id, privacy: .public)")
+        }
+      } catch {
+        storeLog.error(
+          "Loading \(id, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+      }
+      self?.finishLoading(answer)
+    }
+  }
+
+  /// `isProductAnswered` is never reset, so a retry that fails keeps `.locked(price: nil)`
+  /// rather than going back to `.unknown`, which would take every PRO badge away while it runs.
+  private func finishLoading(_ answer: ProductInfo?) {
+    product = answer
+    displayPrice = answer?.displayPrice
+    isProductAnswered = true
+    isLoadingProduct = false
+    productLoad = nil
+  }
 
   // MARK: - Without a store
 
