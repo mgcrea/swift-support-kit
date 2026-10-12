@@ -196,6 +196,48 @@ struct ProStoreEntitlementTests {
     #expect(store.isPro)
   }
 
+  @Test("A slow first read cannot undo a restore that answered first")
+  func slowFirstReadCannotUndoARestore() async {
+    let script = StoreScript()
+    let gate = await script.gateEntitlements()
+    let defaults = scratchDefaults()
+    let store = makeStore(script) {
+      $0.cacheKey = "pro.cache"
+      $0.defaults = defaults
+    }
+    store.start()
+    #expect(await eventually { await script.entitlementRequests == 1 })
+    await script.setEntitlements([script.transaction("pro")])
+    await store.restore()
+    #expect(store.isPro)
+    gate.open()
+    await store.settled()
+    #expect(store.isPro)
+    #expect(defaults.bool(forKey: "pro.cache"))
+  }
+
+  @Test("An older read that saw the purchase cannot undo a refund read after it")
+  func olderReadCannotUndoARefund() async {
+    let script = StoreScript()
+    await script.setEntitlements([script.transaction("pro")])
+    let gate = await script.gateEntitlements()
+    let defaults = scratchDefaults()
+    defaults.set(true, forKey: "pro.cache")
+    let store = makeStore(script) {
+      $0.cacheKey = "pro.cache"
+      $0.defaults = defaults
+    }
+    store.start()
+    #expect(await eventually { await script.entitlementRequests == 1 })
+    await script.setEntitlements([])
+    script.updatesContinuation.yield(.verified(script.transaction("pro", revoked: true)))
+    #expect(await eventually { !store.isPro })
+    gate.open()
+    await store.settled()
+    #expect(!store.isPro)
+    #expect(!defaults.bool(forKey: "pro.cache"))
+  }
+
   @Test("A cancelled read settles nothing")
   func cancelledReadSettlesNothing() async {
     let script = StoreScript()

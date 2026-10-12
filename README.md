@@ -285,16 +285,17 @@ Toggle("Arcade Effects", isOn: arcadeBinding)  // sets `upgrade` when locked
   } content: { request in
     ProUpgradeSheet(
       productName: "Pupitre Pro", headline: request.headline, alwaysFree: alwaysFree,
-      features: ProFeature.entries, state: store.purchaseState,
-      isWorking: store.isWorking || store.isLoadingProduct, errorMessage: store.lastError,
+      features: ProFeature.entries, state: store.purchaseState, isWorking: store.isWorking,
+      isLoadingProduct: store.isLoadingProduct, errorMessage: store.lastError,
       isPending: store.isPurchasePending, purchase: { Task { await store.purchase() } },
       retry: { store.start() }, restore: { Task { await store.restore() } })
   }
 ```
 
 With `retry`, a product that did not load draws Try Again instead of a disabled Unavailable,
-and is asked for once as the sheet or pane appears. `isPending` draws the kit's note for a
-purchase waiting on Ask to Buy. `ProSettingsPane` takes the same three.
+and is asked for once as the sheet or pane appears; `isLoadingProduct` shows progress in its
+place while it asks, and leaves Restore enabled. `isPending` draws the kit's note for a
+purchase waiting on Ask to Buy. `ProSettingsPane` takes the same four.
 
 ## The Pro store
 
@@ -313,8 +314,9 @@ pro.start()   // at launch, and from every view that wants a price
 ```
 
 It owns the first entitlement read, retries a product that did not load each time `start()`
-is called, grants straight from a verified purchase, and never lets a read that began before
-a grant undo it. `purchaseState` feeds `ProSettingsPane`, `ProUpgradeSheet` and `ProBadge`;
+is called, gives up on a lookup after 30 seconds rather than waiting forever, grants straight
+from a verified purchase, and lets neither a read that began before a grant nor one overtaken
+by a later read have the last word. `purchaseState` feeds `ProSettingsPane`, `ProUpgradeSheet` and `ProBadge`;
 an app with its own paywall reads `isProductUnavailable` and calls `start()` for Try Again.
 
 - `alsoEntitling`: retired product ids that still grant Pro.

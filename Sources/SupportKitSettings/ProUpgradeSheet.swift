@@ -30,9 +30,10 @@ public struct ProUpgradeSheet: View {
 
   /// `nonisolated` so tests and callers off the main actor can ask without hopping to it.
   public nonisolated static func action(
-    state: ProPurchaseState, isWorking: Bool, canRetry: Bool = false
+    state: ProPurchaseState, isWorking: Bool, isLoadingProduct: Bool = false,
+    canRetry: Bool = false
   ) -> Action {
-    if isWorking { return .working }
+    if isWorking || isLoadingProduct { return .working }
     switch state {
     case .unknown: return .working
     case .locked(let price?): return .buy(price: price)
@@ -47,6 +48,7 @@ public struct ProUpgradeSheet: View {
   private let features: [ProFeatureEntry]
   private let state: ProPurchaseState
   private let isWorking: Bool
+  private let isLoadingProduct: Bool
   private let errorMessage: String?
   private let isPending: Bool
   private let installedVersion: String
@@ -62,8 +64,9 @@ public struct ProUpgradeSheet: View {
   ///     Pupitre Pro".
   ///   - alwaysFree: what stays free, in the app's catalog, drawn under the headline.
   ///   - features: the same entries the app passes `ProSettingsPane`.
-  ///   - isWorking: a purchase or restore is in flight, or the product is being asked for
-  ///     again. With `ProStore`, `pro.isWorking || pro.isLoadingProduct`.
+  ///   - isWorking: a purchase or restore is in flight; Unlock and Restore both wait.
+  ///   - isLoadingProduct: the product is being asked for again. Only the Unlock position
+  ///     waits: Restore does not need the product, and a slow lookup must not take it away.
   ///   - errorMessage: the store's last error, already worded by the app.
   ///   - isPending: a purchase waiting for Ask to Buy or a deferred payment; draws the kit's
   ///     note.
@@ -77,6 +80,7 @@ public struct ProUpgradeSheet: View {
     features: [ProFeatureEntry],
     state: ProPurchaseState,
     isWorking: Bool = false,
+    isLoadingProduct: Bool = false,
     errorMessage: String? = nil,
     isPending: Bool = false,
     installedVersion: String = ReleaseNotes.bundleVersion,
@@ -90,6 +94,7 @@ public struct ProUpgradeSheet: View {
     self.features = features
     self.state = state
     self.isWorking = isWorking
+    self.isLoadingProduct = isLoadingProduct
     self.errorMessage = errorMessage
     self.isPending = isPending
     self.installedVersion = installedVersion
@@ -99,7 +104,9 @@ public struct ProUpgradeSheet: View {
   }
 
   private var currentAction: Action {
-    Self.action(state: state, isWorking: isWorking, canRetry: retry != nil)
+    Self.action(
+      state: state, isWorking: isWorking, isLoadingProduct: isLoadingProduct,
+      canRetry: retry != nil)
   }
 
   public var body: some View {

@@ -64,6 +64,7 @@ public struct StoreClient: Sendable {
   public var currentEntitlements: @Sendable () async -> [TransactionInfo]
   public var unfinished: @Sendable () async -> [TransactionUpdate]
   public var updates: @Sendable () -> AsyncStream<TransactionUpdate>
+  /// Throws `CancellationError` when the person dismisses the sign-in prompt.
   public var sync: @Sendable () async throws -> Void
   public var originalPurchase: @Sendable () async -> OriginalPurchase
   /// True for `.live` alone, which a test host must never start.

@@ -61,6 +61,8 @@ actor StoreScript {
   func setUnfinished(_ updates: [TransactionUpdate]) { unfinished = updates }
   func setOriginal(_ original: OriginalPurchase) { self.original = original }
   func failSync() { syncError = Unreachable() }
+  /// What the live client throws when the person dismisses the sign-in prompt.
+  func cancelSync() { syncError = CancellationError() }
 
   // MARK: Values
 
@@ -78,10 +80,10 @@ actor StoreScript {
     }
   }
 
-  nonisolated func failingProduct() -> ProductInfo {
+  nonisolated func failingProduct(_ error: any Error = Unreachable()) -> ProductInfo {
     ProductInfo(id: "pro", displayPrice: "$5.99") {
       await self.recordPurchase()
-      throw Unreachable()
+      throw error
     }
   }
 
@@ -107,13 +109,16 @@ actor StoreScript {
     return products
   }
 
+  /// A gated read answers what was true when it was asked, like a read that stalled after
+  /// StoreKit had already looked.
   private func answerEntitlements() async -> [TransactionInfo] {
     entitlementRequests += 1
+    let answer = entitlements
     if let gate = entitlementGate {
       entitlementGate = nil
       await gate.wait()
     }
-    return entitlements
+    return answer
   }
 
   private func takeUnfinished() -> [TransactionUpdate] {
