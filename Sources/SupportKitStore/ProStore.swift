@@ -170,18 +170,27 @@ public final class ProStore {
   }
 
   private func readFirst() async {
-    for update in await client.unfinished() { await handle(update) }
-    await refresh()
+    await drainThenRefresh()
   }
 
-  /// Re-reads what the App Store says. Discarded when a grant landed meanwhile, when a later
-  /// read started meanwhile (the newest question gets the last word: a first read that stalled
-  /// must not undo a restore, nor an old read that saw a purchase undo the refund after it),
-  /// and when the task was cancelled.
-  func refresh() async {
+  /// Grants what `unfinished` holds, then re-reads. The read counts grants from before the
+  /// drain: `currentEntitlements` can lag behind a transaction that is still unfinished, and a
+  /// read that only guarded against later grants would take this one back and cache the lock.
+  private func drainThenRefresh() async {
+    let generation = grants
+    for update in await client.unfinished() { await handle(update) }
+    await refresh(since: generation)
+  }
+
+  /// Re-reads what the App Store says. Discarded when a grant landed meanwhile (since
+  /// `generation`, by default since this read began), when a later read started meanwhile
+  /// (the newest question gets the last word: a first read that stalled must not undo a
+  /// restore, nor an old read that saw a purchase undo the refund after it), and when the
+  /// task was cancelled.
+  func refresh(since generation: Int? = nil) async {
     reads += 1
     let read = reads
-    let generation = grants
+    let generation = generation ?? grants
     let purchased = await client.isEntitled(to: entitlingIDs)
     var upgraded: Bool? = false
     if !purchased, let cutoff = configuration.upgradeFromPaid {
@@ -352,8 +361,7 @@ public final class ProStore {
     } catch {
       lastError = error.localizedDescription
     }
-    for update in await client.unfinished() { await handle(update) }
-    await refresh()
+    await drainThenRefresh()
     if !isPro, lastError == nil {
       lastError = localized("No previous purchase was found on this Apple Account.")
     }

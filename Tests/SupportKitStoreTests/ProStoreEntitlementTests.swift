@@ -102,6 +102,36 @@ struct ProStoreEntitlementTests {
     #expect(await script.finished == ["pro"])
   }
 
+  /// A purchase that completed while the app was closed (an approved Ask to Buy, a deferred
+  /// payment) waits in `unfinished`, and `currentEntitlements` can lag behind it: the read
+  /// that follows the grant must not take it back, nor cache the lock.
+  @Test("An unfinished purchase granted at launch survives an entitlement read that lags")
+  func unfinishedGrantSurvivesALaggingRead() async {
+    let script = StoreScript()
+    await script.setUnfinished([.verified(script.transaction("pro"))])
+    let defaults = scratchDefaults()
+    let store = makeStore(script) {
+      $0.cacheKey = "pro.cache"
+      $0.defaults = defaults
+    }
+    store.start()
+    await store.settled()
+    #expect(store.isPro)
+    #expect(defaults.bool(forKey: "pro.cache"))
+  }
+
+  @Test("An unfinished purchase granted by Restore survives an entitlement read that lags")
+  func restoredUnfinishedGrantSurvivesALaggingRead() async {
+    let script = StoreScript()
+    let store = makeStore(script)
+    store.start()
+    await store.settled()
+    await script.setUnfinished([.verified(script.transaction("pro"))])
+    await store.restore()
+    #expect(store.isPro)
+    #expect(store.lastError == nil)
+  }
+
   @Test("A cached unlock shows Unlocked before StoreKit answers")
   func cachedUnlockShowsAtOnce() {
     let defaults = scratchDefaults()
