@@ -41,8 +41,8 @@ public enum ModelInstallError: Error, Equatable, LocalizedError {
 }
 
 /// Downloads a model's files one by one into its staging folder, checks each file's size and
-/// SHA-256 against the registry, turns them into the finished model (compiled, or kept as
-/// is) and moves it into place. Anything that stops it (an error or
+/// SHA-256 against the registry, turns them into the finished model (compiled, or a file or
+/// folder kept as is) and moves it into place. Anything that stops it (an error or
 /// cancellation) deletes the staging folder, so a model is either fully installed or not
 /// there at all, and the previously installed version is untouched until the new one is.
 public struct ModelInstaller: Sendable {
@@ -102,7 +102,7 @@ public struct ModelInstaller: Sendable {
       try Task.checkCancellation()
       let finished: URL
       switch package.form {
-      case .file(let path):
+      case .file(let path), .folder(let path):
         finished = staging.appending(path: path)
       case .coreML(let path):
         progress(.compiling)

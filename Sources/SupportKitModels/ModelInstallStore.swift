@@ -104,7 +104,7 @@ public final class ModelInstallStore {
       return .outdated(
         folder.appending(
           path: older.lastPathComponent,
-          directoryHint: ext == "mlmodelc" ? .isDirectory : .notDirectory))
+          directoryHint: package.form.isFolder ? .isDirectory : .notDirectory))
     }
     return .notInstalled
   }

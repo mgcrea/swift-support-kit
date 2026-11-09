@@ -42,12 +42,12 @@ public struct ModelLocations: Sendable {
 
   /// The finished model of `package`, whether or not it is on disk yet.
   ///
-  /// The directory hint is decided from the name, never from the disk, so the URL compares
-  /// equal before and after the install: a compiled Core ML model is always a folder.
+  /// The directory hint is decided from the package's form, never from the disk, so the URL
+  /// compares equal before and after the install.
   public func artifact(of package: ModelPackage) -> URL {
-    let isFolder = (package.artifactName as NSString).pathExtension == "mlmodelc"
-    return folder(for: package.id).appending(
-      path: package.artifactName, directoryHint: isFolder ? .isDirectory : .notDirectory)
+    folder(for: package.id).appending(
+      path: package.artifactName,
+      directoryHint: package.form.isFolder ? .isDirectory : .notDirectory)
   }
 
   /// A Hugging Face model's compiled folder at `revision`: see `ModelPackage.huggingFace`.

@@ -49,6 +49,17 @@ public struct ModelPackage: Identifiable, Hashable, Sendable {
     case coreML(path: String)
     /// Keep the file at `path` as it is: weights a runtime such as MLX loads directly.
     case file(path: String)
+    /// Keep the folder at `path` as it is, with every file under it: an MLX model made of
+    /// safetensors shards, a config and a tokenizer, loaded from the folder.
+    case folder(path: String)
+
+    /// Whether the finished model is a folder: a compiled Core ML model always is.
+    public var isFolder: Bool {
+      switch self {
+      case .coreML, .folder: true
+      case .file: false
+      }
+    }
   }
 
   /// Stable: it names the model's folder on disk.

@@ -22,11 +22,13 @@ func sha256Hex(_ data: Data) -> String {
   SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
 }
 
-/// A tiny three-file Core ML "package" and a weights file, and the packages that pin them.
+/// A tiny three-file Core ML "package", a weights file and a two-file MLX folder, and the
+/// packages that pin them.
 enum Fixture {
   static let manifest = Data("{\"manifest\":1}".utf8)
   static let model = Data(repeating: 7, count: 2048)
   static let weights = Data((0..<4096).map { UInt8($0 % 251) })
+  static let config = Data("{\"model_type\":\"fake\"}".utf8)
 
   static func package(id: String = "fake", revision: String = String(repeating: "a", count: 40))
     -> ModelPackage
@@ -59,6 +61,22 @@ enum Fixture {
         ]),
       form: .file(path: "\(id)/weights.safetensors"), artifactName: "weights.safetensors")
   }
+
+  /// A model made of several files kept together as they are, like MLX's: a config beside the
+  /// weights, under `m/` in the repository, installed as `<revision>.mlx`.
+  static func folder(id: String = "mlx-folder", revision: String = String(repeating: "f", count: 40))
+    -> ModelPackage
+  {
+    func file(_ path: String, _ data: Data) -> ModelFile {
+      ModelFile(path: "m/\(path)", bytes: Int64(data.count), sha256: sha256Hex(data))
+    }
+    return ModelPackage(
+      id: id,
+      source: HuggingFaceSource(
+        repo: "test/\(id)", revision: revision,
+        files: [file("config.json", config), file("model.safetensors", weights)]),
+      form: .folder(path: "m"), artifactName: "\(revision).mlx")
+  }
 }
 
 /// Serves bytes by URL path suffix. Behaviour per suffix: normal data, an error, or hanging
@@ -82,6 +100,7 @@ final class FakeFetcher: FileFetcher, @unchecked Sendable {
     FakeFetcher([
       "Manifest.json": .data(Fixture.manifest), "model.mlmodel": .data(Fixture.model),
       "weight.bin": .data(weights), "weights.safetensors": .data(weights),
+      "config.json": .data(Fixture.config), "model.safetensors": .data(weights),
     ])
   }
 

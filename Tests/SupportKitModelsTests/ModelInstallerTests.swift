@@ -201,6 +201,20 @@ struct ModelInstallerTests {
     #expect(!exists(locations.staging(for: "mlx")))
   }
 
+  // MARK: - Folders
+
+  @Test func installsAFolderAsItIs() async throws {
+    let compiler = FakeCompiler()
+    let package = Fixture.folder()
+    let url = try await installer(.serving(), compiler).install(package) { _ in }
+    #expect(url == locations.artifact(of: package))
+    #expect(url.hasDirectoryPath)
+    #expect(try Data(contentsOf: url.appending(path: "config.json")) == Fixture.config)
+    #expect(try Data(contentsOf: url.appending(path: "model.safetensors")) == Fixture.weights)
+    #expect(compiler.compiledPackages.isEmpty)
+    #expect(!exists(locations.staging(for: package.id)))
+  }
+
   /// A leftover from anything but the finished model goes once the install lands: an older
   /// app's `download.tmp`, say.
   @Test func anInstallClearsWhateverElseIsInTheFolder() async throws {

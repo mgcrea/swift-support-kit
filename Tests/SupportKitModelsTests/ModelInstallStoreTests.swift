@@ -151,6 +151,22 @@ struct ModelInstallStoreTests {
     #expect(!FileManager.default.fileExists(atPath: locations.folder(for: "a").path()))
   }
 
+  /// A folder model's name has no extension the disk could be read by: its form says it is a
+  /// folder, before the install and after a relaunch alike.
+  @Test func aFolderOfAnEarlierRevisionIsOutdatedAfterARelaunch() throws {
+    let old = String(repeating: "1", count: 40)
+    let folder = locations.folder(for: "mlx-folder")
+    let installed = folder.appending(path: "\(old).mlx", directoryHint: .isDirectory)
+    try FileManager.default.createDirectory(at: installed, withIntermediateDirectories: true)
+    try Fixture.config.write(to: installed.appending(path: "config.json"))
+    let package = Fixture.folder(revision: String(repeating: "2", count: 40))
+    let s = ModelInstallStore(
+      installer: ModelInstaller(locations: locations, fetcher: FakeFetcher.serving()),
+      packages: [package])
+    #expect(s.state(of: "mlx-folder") == .outdated(installed))
+    #expect(s.installedURL(of: "mlx-folder")?.hasDirectoryPath == true)
+  }
+
   /// "The old folder stays usable until the new one is ready".
   @Test func anOutdatedModelStaysUsableWhileItUpdates() async throws {
     let old = try fakeInstalled(a, revision: String(repeating: "d", count: 40))

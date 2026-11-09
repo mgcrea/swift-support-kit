@@ -68,7 +68,7 @@ anything in this list. A test asserts it.
 ## Install
 
 ```swift
-.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.21.1"))
+.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.22.0"))
 ```
 
 Eight products; the main ones are below, and `SupportKitMemory`, `SupportKitModels` and
@@ -536,7 +536,7 @@ MemoryPressureWatcher.start { _ in MLX.Memory.clearCache() }
 `SupportKitModels`, for apps that download machine-learning models on demand. Each model is
 one or more files in a Hugging Face repository, pinned to a commit and each checked for size
 and SHA-256. The installer fetches them into a staging folder, checks each one, compiles a
-Core ML package or keeps a weights file as it is, and moves the result into place:
+Core ML package or keeps a weights file or a folder as it is, and moves the result into place:
 
 ```swift
 import SupportKitModels
@@ -550,6 +550,9 @@ store.installedURL(of: package.id)  // what to load now, even mid-update
 
 - **The registry stays in the app.** Pipeline steps, Pro tiers and which model is active are
   the app's business. It hands the store a `ModelPackage` per downloadable entry.
+- **Three forms.** `.coreML(path:)` compiles a package to a `.mlmodelc` folder,
+  `.file(path:)` keeps one weights file as it is, and `.folder(path:)` keeps a folder with
+  every file under it, for an MLX model made of shards, a config and a tokenizer.
 - **A model is fully installed or not there at all.** Every exit path deletes the staging
   folder, and a failed or cancelled update leaves the previous version usable.
 - **The models folder is excluded from backups.** Everything in it can be downloaded again.
