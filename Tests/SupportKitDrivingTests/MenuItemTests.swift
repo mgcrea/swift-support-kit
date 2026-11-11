@@ -34,7 +34,8 @@
     /// command menu does not, means what its `isEnabled` says: a shortcut the
     /// app greyed out on purpose is not fired.
     @Test func anItemTheAppDisabledIsNotUsable() {
-      let delete = NSMenuItem(title: "Delete", action: #selector(NSText.delete(_:)), keyEquivalent: "d")
+      let delete = NSMenuItem(
+        title: "Delete", action: #selector(NSText.delete(_:)), keyEquivalent: "d")
       // Held: an item's `menu` is weak, and a dropped menu would send the item
       // to the text view's own validation instead.
       let holder = menu(delete)
@@ -64,7 +65,8 @@
 
     @Test func anUppercaseEquivalentCarriesShift() {
       let item = NSMenuItem(title: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
-      #expect(EventSynthesis.menuItem(in: menu(item), key: "z", flags: [.command, .shift]) === item)
+      #expect(
+        EventSynthesis.menuItem(in: menu(item), key: "z", flags: [.command, .shift]) === item)
     }
   }
 #endif

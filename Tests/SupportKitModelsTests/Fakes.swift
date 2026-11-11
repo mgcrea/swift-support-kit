@@ -64,7 +64,9 @@ enum Fixture {
 
   /// A model made of several files kept together as they are, like MLX's: a config beside the
   /// weights, under `m/` in the repository, installed as `<revision>.mlx`.
-  static func folder(id: String = "mlx-folder", revision: String = String(repeating: "f", count: 40))
+  static func folder(
+    id: String = "mlx-folder", revision: String = String(repeating: "f", count: 40)
+  )
     -> ModelPackage
   {
     func file(_ path: String, _ data: Data) -> ModelFile {

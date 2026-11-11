@@ -356,7 +356,9 @@
       for item in menu.items {
         if let found = menuItem(in: item.submenu, key: key, flags: flags) { return found }
         guard !item.isSeparatorItem, !item.keyEquivalent.isEmpty else { continue }
-        var mask = item.keyEquivalentModifierMask.intersection([.command, .shift, .option, .control])
+        var mask = item.keyEquivalentModifierMask.intersection([
+          .command, .shift, .option, .control,
+        ])
         // An uppercase key equivalent carries its shift in the letter.
         if item.keyEquivalent != item.keyEquivalent.lowercased() { mask.insert(.shift) }
         if item.keyEquivalent.lowercased() == key.lowercased(), mask == wanted { return item }
