@@ -97,6 +97,43 @@
       DispatchQueue.main.async { MainActor.assumeIsolated { done(.success(ack())) } }
     }
 
+    /// `finish`, but only once every event queued before it has been handled.
+    ///
+    /// A click QUEUES its up, and a SwiftUI button acts on the up, so the effect
+    /// happens when the app's event loop reaches it, which can be after a plain
+    /// `DispatchQueue.main.async`. Measured: an ack sent that way answered for a
+    /// button whose action then held the main thread for 3 s. A marker event is
+    /// queued behind the up, and the ack waits for it.
+    private func finishAfterQueued(
+      _ done: @escaping Done, _ ack: @escaping @MainActor () -> Ack
+    ) {
+      if fenceMonitor == nil {
+        fenceMonitor = NSEvent.addLocalMonitorForEvents(matching: .applicationDefined) {
+          [weak self] event in
+          guard event.subtype.rawValue == Self.fenceSubtype else { return event }
+          MainActor.assumeIsolated { self?.fences.removeValue(forKey: event.data1)?() }
+          return nil
+        }
+      }
+      nextFence += 1
+      let token = nextFence
+      fences[token] = { [weak self] in self?.finish(done, ack) }
+      guard
+        let marker = NSEvent.otherEvent(
+          with: .applicationDefined, location: .zero, modifierFlags: [], timestamp: 0,
+          windowNumber: 0, context: nil, subtype: Self.fenceSubtype, data1: token, data2: 0)
+      else {
+        fences.removeValue(forKey: token)?()
+        return
+      }
+      NSApp.postEvent(marker, atStart: false)
+    }
+
+    private static let fenceSubtype: Int16 = 0x5344
+    private var fenceMonitor: Any?
+    private var fences: [Int: @MainActor () -> Void] = [:]
+    private var nextFence = 0
+
     // ─── the pointer ─────────────────────────────────────────────────────────
 
     private func mouse(
@@ -120,7 +157,7 @@
           NSApp.postEvent(mouse(.leftMouseUp, window, local, clicks: n), atStart: false)
           window.sendEvent(mouse(.leftMouseDown, window, local, clicks: n))
         }
-        finish(done) { self.ack(window, at: local) }
+        finishAfterQueued(done) { self.ack(window, at: local) }
       case .right:
         // A context menu runs a modal tracking loop inside the mouse-down and
         // does not return until it closes, so the ack goes out first and the
@@ -150,7 +187,7 @@
       }
       NSApp.postEvent(mouse(.leftMouseUp, window, end), atStart: false)
       window.sendEvent(mouse(.leftMouseDown, window, start))
-      finish(done) { self.ack(window, at: end) }
+      finishAfterQueued(done) { self.ack(window, at: end) }
     }
 
     /// Not yet measured: whether a `mouseMoved` delivered this way fires a
@@ -243,12 +280,23 @@
       let shown = flags.contains(.shift) ? characters.uppercased() : characters
 
       if flags.contains(.command) || flags.contains(.control) {
+        // Resolved from this window's first responder, as it would be if the
+        // window were key, and validated against that target, so an item with
+        // nothing to act on (Undo with nothing to undo) stays a no.
         if let item = Self.menuItem(in: NSApp.mainMenu, key: characters, flags: flags),
-          let action = item.action
+          let action = item.action,
+          let target = NSApp.target(
+            forAction: action, to: item.target ?? window.firstResponder ?? window, from: item)
         {
-          let sent = NSApp.sendAction(
-            action, to: item.target ?? window.firstResponder ?? window, from: item)
-          if sent {
+          if let validating = target as? NSMenuItemValidation,
+            !validating.validateMenuItem(item)
+          {
+            finish(done) {
+              self.ack(window, note: "menu item \"\(item.title)\" is disabled; nothing was done")
+            }
+            return
+          }
+          if NSApp.sendAction(action, to: target, from: item) {
             finish(done) { self.ack(window, note: "menu item \"\(item.title)\"") }
             return
           }
@@ -288,17 +336,20 @@
       }
     }
 
-    /// The enabled item whose key equivalent and modifiers match, searched
-    /// depth first, as AppKit itself searches.
+    /// The item whose key equivalent and modifiers match, searched depth first,
+    /// as AppKit itself searches.
+    ///
+    /// Enabled or not: in an app that is not active, automatic validation finds
+    /// no key window to resolve a nil target in and disables Select All, Copy
+    /// and the rest. `key(_:modifiers:)` asks the explicit target instead.
     static func menuItem(in menu: NSMenu?, key: String, flags: NSEvent.ModifierFlags)
       -> NSMenuItem?
     {
       guard let menu else { return nil }
-      menu.update()
       let wanted = flags.intersection([.command, .shift, .option, .control])
       for item in menu.items {
         if let found = menuItem(in: item.submenu, key: key, flags: flags) { return found }
-        guard item.isEnabled, !item.keyEquivalent.isEmpty else { continue }
+        guard !item.isSeparatorItem, !item.keyEquivalent.isEmpty else { continue }
         var mask = item.keyEquivalentModifierMask.intersection([.command, .shift, .option, .control])
         // An uppercase key equivalent carries its shift in the letter.
         if item.keyEquivalent != item.keyEquivalent.lowercased() { mask.insert(.shift) }

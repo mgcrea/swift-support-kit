@@ -559,6 +559,40 @@ store.installedURL(of: package.id)  // what to load now, even mid-update
 - **Offline tests.** The network and the Core ML compiler sit behind `FileFetcher` and
   `ModelCompiler`, so the tests serve files from memory.
 
+## Driving a Debug build
+
+`SupportKitDriving` lets an agent click, drag, hover, type and press shortcuts in a Debug
+build **without the app coming forward**, so the person at the keyboard keeps their focus.
+Driving a Mac app usually means posting events to the login session, which has one cursor
+and one frontmost app. Here the agent writes commands to a file and the app delivers them to
+its own windows as `NSEvent`s, the way WebDriverAgent drives an iOS Simulator from inside the
+device:
+
+```swift
+import SupportKitDriving
+
+// At launch, beside AppShotCues.start. Keep it alive for the life of the process.
+driving = Driving.startIfRequested()
+```
+
+- **Compiled only in DEBUG, and opened only on `-DrivingChannel YES`.** An input channel
+  bypasses the Accessibility permission that guards every other way of driving the app, so a
+  Release build has no channel at all, not even dead code: its object holds no channel
+  symbols. Cupertino's `apple_desktop_launch` with `channel: true` passes the argument; an
+  Xcode scheme can pass it too.
+- **The channel is `<NSTemporaryDirectory()>/SupportKitDriving/<pid>/`**, inside the app's
+  container when it is sandboxed. `commands.jsonl` takes one `DrivingCommand` per line, in
+  global top-left points; `events.jsonl` gets `ready`, then an `ack` (what was hit, what has
+  the focus) or an `error` for each `seq`.
+- **The app hit-tests its own windows**, so a window covered by another app's still takes the
+  click, and the app never becomes active.
+- **Shortcuts are matched against the main menu** and sent to the window's first responder by
+  name. An inactive app has no key window, and a key equivalent posted from outside is ignored.
+- **Measured, and not yet measured.** Keys, clicks on AppKit and SwiftUI buttons, click to
+  focus and Select All were measured with Cupertino's `make channel-check`. Hover, scroll,
+  right-click menus and WebKit content were not measured.
+- **macOS only.** On iOS, `startIfRequested()` returns nil.
+
 ## Styling
 
 `FeedbackLink` and `IssueTrackerLink` render a bare `Label` — no background, no glass, no accent
