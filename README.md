@@ -68,11 +68,11 @@ anything in this list. A test asserts it.
 ## Install
 
 ```swift
-.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.23.0"))
+.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.24.0"))
 ```
 
-Eight products; the main ones are below, and `SupportKitMemory`, `SupportKitModels` and
-`SupportKitStore` have their own sections. `SupportKit` is Foundation-only, so it unit-tests without a host app and imports
+Ten products; the main ones are below, and `SupportKitMemory`, `SupportKitModels`,
+`SupportKitStore`, `SupportKitDriving` and `SupportKitTestHost` have their own sections. `SupportKit` is Foundation-only, so it unit-tests without a host app and imports
 from non-UI modules. `SupportKitUI` adds the SwiftUI surface. `SupportKitSettings` adds the
 settings scaffold, kept separate because it is the part that will churn. `SupportKitMenuBar`
 adds the menu bar panel, which is macOS-only. `SupportKitToolbar` adds the two-line toolbar
@@ -596,6 +596,48 @@ driving = Driving.startIfRequested()
   automatically, as SwiftUI command menus do not, the item's `isEnabled` decides. Otherwise the
   target is asked, as AppKit would ask it from the key window.
 - **macOS only.** On iOS, `startIfRequested()` returns nil.
+
+## Hosted tests off the screen
+
+`SupportKitTestHost` keeps an app's hosted test run (`xcodebuild test` with the app as
+`TEST_HOST`) off the screen of the person working at the Mac. Left alone, the test host is a
+regular app: it opens its window over their work at launch, and every window a test orders
+front is drawn there too, for the whole run.
+
+```swift
+import SupportKitTestHost
+
+// In the App's init, or the app delegate's applicationWillFinishLaunching:
+TestHost.stayInBackground()
+// On the scene that opens at launch:
+.defaultLaunchBehavior(TestHost.launchBehavior)
+```
+
+In the tests, a window is a `HostedWindow` rather than an `NSWindow`, and a document is shown
+with `HostedWindow.show(document)` or `HostedWindow.openUntitled()` rather than `showWindows()`
+or `openUntitledDocumentAndDisplay(true)`.
+
+- **Only a Debug build, only under a test host.** `XCTestConfigurationFilePath` is how it
+  knows. A Release build keeps an empty `stayInBackground()` and `.automatic`, and
+  `HostedWindow` is not compiled at all.
+- **An accessory app**: no Dock icon, and never made active, so the person's keystrokes stay
+  where they were.
+- **Nothing at launch.** SwiftUI's own app delegate answers `applicationShouldOpenUntitledFile`
+  without asking the app's, so the scene's launch behaviour is where a document app's untitled
+  document or Open panel is stopped.
+- **Every window off every display.** A `HostedWindow` starts past the top right of all of them
+  and refuses AppKit's constraint back. Any other top-level window the app has is moved there
+  from inside the move that put it on a screen. AppKit keeps 40 points of its own titled
+  windows (a document's) on a display, so those go as far as they will and are made
+  transparent, letting clicks through. Sheets and popovers, centred on their window, go with
+  it; a window made transparent where it stood still showed its sheets sliding in.
+- **Events go to the window, not the screen.** A `CGEvent` made at a screen point finds no
+  window off screen, and its `locationInWindow` is then the screen point. Make the event with
+  `NSEvent.mouseEvent(…windowNumber:…)` and set what it cannot take on its `cgEvent`.
+- **Measured** on Maquette, 2026-11-11: a watcher logging every activation and every window
+  the test host owned on a display saw none in two full runs of 289 tests, against an Open
+  panel at launch and 36 windows in a run with only the accessory policy.
+- **macOS only.** On iOS the module is empty.
 
 ## Styling
 

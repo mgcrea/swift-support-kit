@@ -1,7 +1,7 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
-// Nine products, deliberately split.
+// Ten products, deliberately split.
 //
 // `SupportKit` is Foundation-only, so it can be unit-tested without a host app
 // and imported from a non-UI module. `SupportKitUI` is the SwiftUI surface. An
@@ -36,6 +36,12 @@ import PackageDescription
 // Its own product because it is an input channel that bypasses Accessibility permission,
 // so it compiles to nothing outside DEBUG, and no app should link it by accident with the
 // Help menu. macOS only; on iOS the module is empty.
+//
+// `SupportKitTestHost` keeps an app's hosted test run off the screen of the person working at
+// the Mac: under a test host the app is never the active app, opens nothing at launch, and
+// keeps every window it has off every display. Its own product because it is test machinery
+// the app links, acting only in DEBUG and only when XCTest loaded it; every other product
+// is something the app shows or does. macOS only; on iOS the module is empty.
 //
 // `SupportKitStore` is the Pro purchase: StoreKit's half of what `SupportKitSettings`
 // draws. Its own product because it links StoreKit, which an app wanting the Help menu
@@ -86,6 +92,7 @@ let package = Package(
     .library(name: "SupportKitModels", targets: ["SupportKitModels"]),
     .library(name: "SupportKitStore", targets: ["SupportKitStore"]),
     .library(name: "SupportKitDriving", targets: ["SupportKitDriving"]),
+    .library(name: "SupportKitTestHost", targets: ["SupportKitTestHost"]),
   ],
   targets: [
     .target(name: "SupportKit"),
@@ -113,6 +120,8 @@ let package = Package(
     .target(name: "SupportKitModels"),
     // No catalog: it draws nothing, and its errors are read by the agent driving it.
     .target(name: "SupportKitDriving"),
+    // No catalog: it draws nothing.
+    .target(name: "SupportKitTestHost"),
     // A catalog: its purchase errors are shown to the user as they are.
     .target(
       name: "SupportKitStore",
@@ -127,6 +136,7 @@ let package = Package(
     .testTarget(name: "SupportKitModelsTests", dependencies: ["SupportKitModels"]),
     .testTarget(name: "SupportKitStoreTests", dependencies: ["SupportKitStore"]),
     .testTarget(name: "SupportKitDrivingTests", dependencies: ["SupportKitDriving"]),
+    .testTarget(name: "SupportKitTestHostTests", dependencies: ["SupportKitTestHost"]),
     // Depends on no module: it reads the sources and the catalogs off disk, so a
     // lookup that happens to resolve at runtime for the wrong reason cannot fool it.
     .testTarget(name: "SupportKitLocalizationTests"),
