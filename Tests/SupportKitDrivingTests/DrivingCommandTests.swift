@@ -10,9 +10,22 @@ import Testing
 @Suite struct DrivingCommandTests {
   @Test func parsesAClick() throws {
     let envelope = try DrivingCommand.parse(
-      line: #"{"seq":1,"verb":"click","x":10,"y":20,"button":"right","count":2}"#)
+      line: #"{"seq":1,"verb":"click","x":10,"y":20,"button":"left","count":2}"#)
     #expect(envelope.seq == 1)
-    #expect(envelope.command == .click(point: CGPoint(x: 10, y: 20), button: .right, count: 2))
+    #expect(envelope.command == .click(point: CGPoint(x: 10, y: 20), button: .left, count: 2))
+  }
+
+  /// A context menu is a window of its own, drawn over whatever the person is
+  /// using, and its tracking loop does not read keys sent to the app's window,
+  /// so nothing sent through the channel could close it. Refused, pointing at
+  /// AXShowMenu, until that is measured.
+  @Test func aRightClickIsRefusedNamingTheAlternative() {
+    do {
+      _ = try DrivingCommand.parse(line: #"{"seq":1,"verb":"click","x":1,"y":2,"button":"right"}"#)
+      Issue.record("a right-click parsed")
+    } catch {
+      #expect("\(error)".contains("apple_desktop_show_menu"))
+    }
   }
 
   @Test func aClickDefaultsToOneLeft() throws {
@@ -86,5 +99,21 @@ import Testing
     #expect(DrivingCommand.keyCode("a") == 0)
     #expect(DrivingCommand.keyCode("v") == 9)
     #expect(DrivingCommand.keyCode("nope") == nil)
+  }
+
+  /// Any single character is a key: a shortcut is matched by its characters,
+  /// so Cmd-comma (Settings) needs no position, and code 0 carries it.
+  @Test func aSingleCharacterIsAKey() {
+    #expect(DrivingCommand.keyCode(",") == 0)
+    #expect(DrivingCommand.keyCode("/") == 0)
+  }
+
+  /// Only a launch argument opens a channel: a default in the app's own domain
+  /// or the global one would open it in every Debug build, every launch.
+  @Test func onlyALaunchArgumentOpensAChannel() {
+    #expect(Driving.requested(arguments: ["App", "-DrivingChannel", "YES"]))
+    #expect(!Driving.requested(arguments: ["App"]))
+    #expect(!Driving.requested(arguments: ["App", "-DrivingChannel", "NO"]))
+    #expect(!Driving.requested(arguments: ["App", "-DrivingChannel"]))
   }
 }

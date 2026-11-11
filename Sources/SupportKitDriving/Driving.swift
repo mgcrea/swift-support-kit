@@ -37,7 +37,7 @@ public final class Driving {
   /// `-DrivingChannel YES`.
   public static func startIfRequested() -> Driving? {
     #if os(macOS) && DEBUG
-      guard UserDefaults.standard.bool(forKey: "DrivingChannel") else { return nil }
+      guard requested(arguments: ProcessInfo.processInfo.arguments) else { return nil }
       do {
         return Driving(channel: try DrivingChannel.open())
       } catch {
@@ -47,6 +47,16 @@ public final class Driving {
     #else
       return nil
     #endif
+  }
+
+  /// Whether the process was launched with `-DrivingChannel YES`. The
+  /// arguments themselves, not `UserDefaults`: that also reads the app's own
+  /// domain and the global one, so a `defaults write -g DrivingChannel YES`
+  /// would open a channel in every Debug build, at every launch.
+  nonisolated static func requested(arguments: [String]) -> Bool {
+    guard let flag = arguments.firstIndex(of: "-DrivingChannel"), flag + 1 < arguments.count
+    else { return false }
+    return ["YES", "yes", "true", "1"].contains(arguments[flag + 1])
   }
 
   #if os(macOS) && DEBUG

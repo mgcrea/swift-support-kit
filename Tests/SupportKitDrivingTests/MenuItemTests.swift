@@ -30,6 +30,33 @@
         EventSynthesis.menuItem(in: menu(selectAll), key: "a", flags: [.command]) === selectAll)
     }
 
+    /// A menu that does not enable its items automatically, as a SwiftUI
+    /// command menu does not, means what its `isEnabled` says: a shortcut the
+    /// app greyed out on purpose is not fired.
+    @Test func anItemTheAppDisabledIsNotUsable() {
+      let delete = NSMenuItem(title: "Delete", action: #selector(NSText.delete(_:)), keyEquivalent: "d")
+      // Held: an item's `menu` is weak, and a dropped menu would send the item
+      // to the text view's own validation instead.
+      let holder = menu(delete)
+      withExtendedLifetime(holder) {
+        delete.isEnabled = false
+        #expect(!EventSynthesis.isUsable(delete, target: NSTextView()))
+        delete.isEnabled = true
+        #expect(EventSynthesis.isUsable(delete, target: NSTextView()))
+      }
+    }
+
+    /// In a menu that enables automatically, the target decides, as AppKit's
+    /// own validation would from the key window.
+    @Test func anAutoEnabledItemAsksTheTarget() {
+      let selectAll = NSMenuItem(
+        title: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+      let edit = NSMenu(title: "Edit")
+      edit.addItem(selectAll)
+      selectAll.isEnabled = false
+      #expect(EventSynthesis.isUsable(selectAll, target: NSTextView()))
+    }
+
     @Test func theModifiersMustMatch() {
       let item = NSMenuItem(title: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
       #expect(EventSynthesis.menuItem(in: menu(item), key: "v", flags: [.command, .shift]) == nil)

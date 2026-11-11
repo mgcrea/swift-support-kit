@@ -589,8 +589,12 @@ driving = Driving.startIfRequested()
 - **Shortcuts are matched against the main menu** and sent to the window's first responder by
   name. An inactive app has no key window, and a key equivalent posted from outside is ignored.
 - **Measured, and not yet measured.** Keys, clicks on AppKit and SwiftUI buttons, click to
-  focus and Select All were measured with Cupertino's `make channel-check`. Hover, scroll,
-  right-click menus and WebKit content were not measured.
+  focus and Select All were measured with Cupertino's `make channel-check`. Hover, scroll and
+  WebKit content were not. A right-click is refused: the menu it opens is a window of its own,
+  drawn over the person's work, and nothing sent through the channel can close it.
+- **A shortcut the app disabled stays disabled.** In a menu that does not enable its items
+  automatically, as SwiftUI command menus do not, the item's `isEnabled` decides. Otherwise the
+  target is asked, as AppKit would ask it from the key window.
 - **macOS only.** On iOS, `startIfRequested()` returns nil.
 
 ## Styling

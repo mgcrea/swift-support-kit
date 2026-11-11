@@ -159,17 +159,8 @@
         }
         finishAfterQueued(done) { self.ack(window, at: local) }
       case .right:
-        // A context menu runs a modal tracking loop inside the mouse-down and
-        // does not return until it closes, so the ack goes out first and the
-        // click after it. Escape, sent as a key, closes the menu.
-        let answer = ack(window, at: local, note: "a menu it opens stays open until closed")
-        done(.success(answer))
-        DispatchQueue.main.async {
-          MainActor.assumeIsolated {
-            NSApp.postEvent(self.mouse(.rightMouseUp, window, local), atStart: false)
-            window.sendEvent(self.mouse(.rightMouseDown, window, local))
-          }
-        }
+        // Refused when parsed: see `DrivingCommand.parse`.
+        throw DrivingFailure(description: "a right-click is not sent through the driving channel")
       }
     }
 
@@ -288,9 +279,7 @@
           let target = NSApp.target(
             forAction: action, to: item.target ?? window.firstResponder ?? window, from: item)
         {
-          if let validating = target as? NSMenuItemValidation,
-            !validating.validateMenuItem(item)
-          {
+          if !Self.isUsable(item, target: target) {
             finish(done) {
               self.ack(window, note: "menu item \"\(item.title)\" is disabled; nothing was done")
             }
@@ -313,6 +302,23 @@
           keyEvent(type, window, characters: shown, ignoring: characters, code: code, flags: flags))
       }
       finish(done) { self.ack(window) }
+    }
+
+    /// Whether a matched item may run against `target`.
+    ///
+    /// A menu that does not enable its items automatically (a SwiftUI command
+    /// menu, or one an app manages itself) means what `isEnabled` says. One that
+    /// does is asked of the target, as AppKit's own validation would ask it from
+    /// the key window, which an app in the background does not have.
+    static func isUsable(_ item: NSMenuItem, target: Any) -> Bool {
+      if item.menu?.autoenablesItems == false { return item.isEnabled }
+      if let validating = target as? NSMenuItemValidation {
+        return validating.validateMenuItem(item)
+      }
+      if let validating = target as? NSUserInterfaceValidations {
+        return validating.validateUserInterfaceItem(item)
+      }
+      return true
     }
 
     /// The characters a named key produces, which is what AppKit matches a

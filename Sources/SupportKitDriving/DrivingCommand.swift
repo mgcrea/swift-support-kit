@@ -70,6 +70,16 @@ public enum DrivingCommand: Equatable, Sendable {
       guard let button = Button(rawValue: name) else {
         throw ParseError(description: "unknown button \"\(name)\"")
       }
+      // A context menu is a window of its own, drawn over whatever the person
+      // is using, and its tracking loop reads no key sent to the app's window,
+      // so nothing sent here could close it. Not measured, so refused.
+      guard button == .left else {
+        throw ParseError(
+          description:
+            "a right-click is not sent through the driving channel: the menu it opens would "
+            + "stay over the person's work with no way to close it from here. Use "
+            + "apple_desktop_show_menu on the element instead")
+      }
       command = .click(
         point: try point(), button: button,
         count: max(1, (object["count"] as? NSNumber)?.intValue ?? 1))
@@ -108,7 +118,9 @@ public enum DrivingCommand: Equatable, Sendable {
   /// in-app shortcut is matched against once its characters are set from the
   /// name, so `command` + `a` selects all on any layout.
   public static func keyCode(_ name: String) -> UInt16? {
-    named[name.lowercased()]
+    // Any other single character is matched by its characters, which is all a
+    // menu's key equivalent and a text binding look at, so code 0 carries it.
+    named[name.lowercased()] ?? (name.count == 1 ? 0 : nil)
   }
 
   private static let named: [String: UInt16] = {
