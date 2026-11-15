@@ -604,8 +604,12 @@ driving = Driving.startIfRequested()
   none. A canvas, a map or a 3D view moves by them, and `NSEvent.mouseEvent(with:…)` leaves
   them at 0, so they are set on each event's `CGEvent` and the event made again from it, which
   keeps its window and its timestamp (measured). Its point in the window it does not always
-  keep (macOS 26 moved it, depending on where the window was and what the window server knew
-  of it), so an event that comes back elsewhere has its point set back, and is checked.
+  keep (macOS 26 moved it, probably where the window server had not yet placed the window), so
+  an event that comes back elsewhere has its point set back, and is checked. Only an event
+  with something to add (a delta, the middle button) is made again: a click, a left drag's
+  down and up, and a hover with no `from` are made as before. When the point cannot be set
+  back the event goes without its delta and middle button, and the ack's `note` says how many
+  did.
 - **A drag is queued, or paced.** By default its steps and its up are queued before its down,
   so a control that tracks the mouse inside its down (a slider) takes them there, and the drag
   takes no time. `paced` sends step `k` of `n` at `k` × `durationMs` / `n`, each once the app

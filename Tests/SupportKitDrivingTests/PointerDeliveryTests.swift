@@ -279,6 +279,37 @@
       #expect(seen.map(\.delta.dy).reduce(0, +) == -80)
     }
 
+    /// A drag whose steps could not be made again with their movement and middle button
+    /// still goes, and its ack says what was lost rather than passing for a drag that worked.
+    /// The round trip is refused for this window, standing in for a system that moves the
+    /// point and cannot have it set back.
+    @Test func aDragThatLostItsMovementSaysSo() async throws {
+      PointerEvent.refusesRoundTrip = window.windowNumber
+      defer { PointerEvent.refusesRoundTrip = nil }
+      let ack = try await drive(
+        .drag(
+          from: global(NSPoint(x: 10, y: 10)), to: global(NSPoint(x: 40, y: 10)),
+          durationMs: 100, button: .other))
+      let seen = view.seen
+      #expect(seen.map(\.delta.dx).reduce(0, +) == 0)
+      let note = try #require(ack.note)
+      #expect(note.contains("6 of 6 events"), "\(note)")
+      #expect(note.contains("movement"))
+    }
+
+    /// The same for a hover's moves, beside its note that hover is not yet measured.
+    @Test func aHoverThatLostItsMovementSaysSo() async throws {
+      PointerEvent.refusesRoundTrip = window.windowNumber
+      defer { PointerEvent.refusesRoundTrip = nil }
+      let ack = try await drive(
+        .hover(
+          point: global(NSPoint(x: 34, y: 10)), durationMs: 0,
+          from: global(NSPoint(x: 10, y: 10))))
+      let note = try #require(ack.note)
+      #expect(note.contains("24 of 24 events"), "\(note)")
+      #expect(note.contains("hover is not yet measured"))
+    }
+
     /// With `from`, the moves go from it to the point, and say which way.
     @Test func aHoverMovesAlongItsPath() async throws {
       _ = try await drive(

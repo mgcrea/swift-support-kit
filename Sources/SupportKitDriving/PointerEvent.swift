@@ -45,26 +45,59 @@
       }
     }
 
-    /// `local` is in the window's coordinates. A `windowNumber` of 0 makes an event for no
-    /// window, whose point is then the one given.
+    /// An event, and whether it carries everything it was asked to: `kept` is false when
+    /// its delta and middle button could not be added, and it is the plain event, with a
+    /// delta of 0 and button 0, at the right point all the same.
+    struct Made {
+      let event: NSEvent
+      let kept: Bool
+    }
+
+    /// Tests only: the window whose events are never made again, standing in for a system
+    /// whose round trip moves the point and cannot have it set back.
+    nonisolated(unsafe) static var refusesRoundTrip: Int?
+
+    /// `made(…).event`, for a caller that does not report what was lost.
     static func make(
       _ phase: Phase, button: DrivingCommand.Button = .left, at local: NSPoint,
       windowNumber: Int, delta: Delta = .zero, flags: NSEvent.ModifierFlags = [],
       clickCount: Int = 1, timestamp: TimeInterval = ProcessInfo.processInfo.systemUptime
     ) -> NSEvent {
+      made(
+        phase, button: button, at: local, windowNumber: windowNumber, delta: delta,
+        flags: flags, clickCount: clickCount, timestamp: timestamp
+      ).event
+    }
+
+    /// `local` is in the window's coordinates. A `windowNumber` of 0 makes an event for no
+    /// window, whose point is then the one given.
+    ///
+    /// An event with nothing to add (no delta, the left button: a click, every down and up
+    /// of a left drag, a hover with no path) is the one `NSEvent.mouseEvent(with:…)` makes,
+    /// as before version 2, by public API only. Only an event with a delta or the middle
+    /// button is made again from its `CGEvent` (see `rebuilt`).
+    static func made(
+      _ phase: Phase, button: DrivingCommand.Button = .left, at local: NSPoint,
+      windowNumber: Int, delta: Delta = .zero, flags: NSEvent.ModifierFlags = [],
+      clickCount: Int = 1, timestamp: TimeInterval = ProcessInfo.processInfo.systemUptime
+    ) -> Made {
       let type = type(phase, button)
       let plain = NSEvent.mouseEvent(
         with: type, location: local, modifierFlags: flags, timestamp: timestamp,
         windowNumber: windowNumber, context: nil, eventNumber: 0, clickCount: clickCount,
         pressure: phase == .up ? 0 : 1)!
-      guard let cg = plain.cgEvent else { return plain }
+      guard delta != .zero || button == .other else { return Made(event: plain, kept: true) }
+      guard let cg = plain.cgEvent else { return Made(event: plain, kept: false) }
       cg.setIntegerValueField(.mouseEventDeltaX, value: Int64(delta.dx))
       cg.setIntegerValueField(.mouseEventDeltaY, value: Int64(delta.dy))
       if button == .other {
         cg.setIntegerValueField(
           .mouseEventButtonNumber, value: Int64(CGMouseButton.center.rawValue))
       }
-      return rebuilt(from: cg, at: local, windowNumber: windowNumber) ?? plain
+      guard let event = rebuilt(from: cg, at: local, windowNumber: windowNumber) else {
+        return Made(event: plain, kept: false)
+      }
+      return Made(event: event, kept: true)
     }
 
     /// The event made again from `cg`, at `local` in window `windowNumber`; nil if it cannot
@@ -77,19 +110,39 @@
     /// some test windows ordered in past every display and not others. So the point is not
     /// trusted: an event that came back elsewhere has its point set back, and is checked.
     /// `NSEvent` keeps it in `_location`, set by key-value coding, which reaches the instance
-    /// variable when there is no setter; a system without that variable gets nil.
+    /// variable when there is no setter; a system without that variable as a `CGPoint` gets
+    /// nil.
     static func rebuilt(from cg: CGEvent, at local: NSPoint, windowNumber: Int) -> NSEvent? {
-      guard let event = NSEvent(cgEvent: cg), event.windowNumber == windowNumber else {
-        return nil
-      }
-      if event.locationInWindow != local {
-        guard NSEvent.accessInstanceVariablesDirectly,
-          class_getInstanceVariable(NSEvent.self, "_location") != nil
-        else { return nil }
+      guard refusesRoundTrip != windowNumber,
+        let event = NSEvent(cgEvent: cg), event.windowNumber == windowNumber
+      else { return nil }
+      if !isAt(event, local) {
+        guard canSetPointBack() else { return nil }
         event.setValue(NSValue(point: local), forKey: "location")
-        guard event.locationInWindow == local else { return nil }
+        guard isAt(event, local) else { return nil }
       }
       return event
+    }
+
+    /// Within a millionth of a point: a round trip that comes back that close is not moved.
+    private static func isAt(_ event: NSEvent, _ local: NSPoint) -> Bool {
+      abs(event.locationInWindow.x - local.x) < 1e-6
+        && abs(event.locationInWindow.y - local.y) < 1e-6
+    }
+
+    /// Whether `NSEvent` has `_location` as a `CGPoint` that key-value coding may write. One
+    /// of another type would make the write raise an Objective-C exception, which Swift
+    /// cannot catch, and crash the app.
+    static func canSetPointBack() -> Bool {
+      guard NSEvent.accessInstanceVariablesDirectly,
+        let ivar = class_getInstanceVariable(NSEvent.self, "_location")
+      else { return false }
+      return canSetPointBack(encoding: ivar_getTypeEncoding(ivar).map { String(cString: $0) })
+    }
+
+    /// Measured, macOS 27: `{CGPoint="x"d"y"d}`.
+    static func canSetPointBack(encoding: String?) -> Bool {
+      encoding?.hasPrefix("{CGPoint=") ?? false
     }
 
     /// The points a pointer goes through from `start` to `end` in `steps` equal steps, the

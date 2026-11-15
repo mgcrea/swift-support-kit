@@ -97,6 +97,46 @@
       }
     }
 
+    /// An event with nothing to add (no delta, the left button) is the one
+    /// `NSEvent.mouseEvent(with:…)` made, as before version 2: never made again, so it never
+    /// needs its point set back. Measured here with the round trip refused for its window:
+    /// it is still kept, while one with a delta, or the middle button, is not.
+    @Test func anEventWithNothingToAddIsLeftAsItWasMade() {
+      let window = window()
+      defer { window.close() }
+      PointerEvent.refusesRoundTrip = window.windowNumber
+      defer { PointerEvent.refusesRoundTrip = nil }
+      for phase in [PointerEvent.Phase.down, .up, .moved, .dragged] {
+        let made = PointerEvent.made(
+          phase, at: NSPoint(x: 10, y: 20), windowNumber: window.windowNumber, clickCount: 2)
+        #expect(made.kept, "\(phase)")
+        #expect(made.event.locationInWindow == NSPoint(x: 10, y: 20))
+        #expect(made.event.clickCount == 2)
+      }
+      let moved = PointerEvent.made(
+        .dragged, at: NSPoint(x: 10, y: 20), windowNumber: window.windowNumber,
+        delta: PointerEvent.Delta(dx: 1, dy: 0))
+      #expect(!moved.kept)
+      #expect(moved.event.deltaX == 0)
+      #expect(moved.event.locationInWindow == NSPoint(x: 10, y: 20))
+      let middle = PointerEvent.made(
+        .down, button: .other, at: NSPoint(x: 10, y: 20), windowNumber: window.windowNumber)
+      #expect(!middle.kept)
+      #expect(middle.event.type == .otherMouseDown)
+    }
+
+    /// The point is set back only into a `CGPoint`: an `_location` of another type, which
+    /// key-value coding could not unwrap into without an exception, leaves the event as it
+    /// came back.
+    @Test func thePointIsSetBackOnlyIntoACGPoint() {
+      #expect(PointerEvent.canSetPointBack(encoding: "{CGPoint=\"x\"d\"y\"d}"))
+      #expect(PointerEvent.canSetPointBack(encoding: "{CGPoint=dd}"))
+      #expect(!PointerEvent.canSetPointBack(encoding: "{CGSize=dd}"))
+      #expect(!PointerEvent.canSetPointBack(encoding: "@\"NSValue\""))
+      #expect(!PointerEvent.canSetPointBack(encoding: nil))
+      #expect(PointerEvent.canSetPointBack())
+    }
+
     @Test func aClickAndAnUpCarryNoDelta() {
       for phase in [PointerEvent.Phase.down, .up] {
         let event = PointerEvent.make(phase, at: NSPoint(x: 1, y: 2), windowNumber: 0)

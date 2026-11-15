@@ -228,23 +228,31 @@
       let number = window.windowNumber
       let steps = max(2, durationMs / 25)
       let path = PointerEvent.path(from: start, to: end, steps: steps)
+      var lost = 0
+      func counted(_ made: PointerEvent.Made) -> NSEvent {
+        if !made.kept { lost += 1 }
+        return made.event
+      }
       /// Event `index`: a step, or the up after the last one. Made when it is
       /// sent, so its timestamp says when.
       func event(_ index: Int) -> NSEvent {
         guard index < path.count else {
-          return PointerEvent.make(.up, button: button, at: end, windowNumber: number, flags: flags)
+          return counted(
+            PointerEvent.made(.up, button: button, at: end, windowNumber: number, flags: flags))
         }
-        return PointerEvent.make(
-          .dragged, button: button, at: path[index].point, windowNumber: number,
-          delta: path[index].delta, flags: flags)
+        return counted(
+          PointerEvent.made(
+            .dragged, button: button, at: path[index].point, windowNumber: number,
+            delta: path[index].delta, flags: flags))
       }
       let count = path.count + 1
-      let down = PointerEvent.make(
-        .down, button: button, at: start, windowNumber: number, flags: flags)
+      let down = counted(
+        PointerEvent.made(.down, button: button, at: start, windowNumber: number, flags: flags))
       guard paced else {
         for index in 0..<count { NSApp.postEvent(event(index), atStart: false) }
         window.sendEvent(down)
-        finishAfterQueued(done) { self.ack(window, at: end) }
+        let note = Self.lostNote(lost, of: count + 1)
+        finishAfterQueued(done) { self.ack(window, at: end, note: note) }
         return
       }
       // Scheduled before the down is sent: a control tracking the mouse does
@@ -266,12 +274,13 @@
           if index + 1 < count {
             send(index + 1, after: sent)
           } else {
-            let note =
+            let paced =
               pacer.unconfirmed == 0
               ? nil
               : "paced: \(pacer.unconfirmed) of \(count) events were sent before the app had "
                 + "taken the one before, once it had not taken one after "
                 + "\(Int(DragPacer.patience * 1000)) ms"
+            let note = Self.notes(Self.lostNote(lost, of: count + 1), paced)
             finishAfterQueued(done) { self.ack(window, at: end, note: note) }
           }
         case .after(let seconds):
@@ -280,6 +289,23 @@
       }
       Self.onRunLoop { send(0, after: nil) }
       window.sendEvent(down)
+    }
+
+    /// What the ack says when some of a command's events went without their
+    /// movement or middle button (see `PointerEvent.made`), so that a drag
+    /// that moved nothing in a view reading its deltas does not pass for one
+    /// that worked. Not a failure: the pointer still went where it was asked,
+    /// which is all a control tracking its position reads.
+    static func lostNote(_ lost: Int, of total: Int) -> String? {
+      guard lost > 0 else { return nil }
+      return "\(lost) of \(total) events were sent without their movement or their middle "
+        + "button: this system moved their point in the window when they were made again, and "
+        + "it could not be set back"
+    }
+
+    static func notes(_ notes: String?...) -> String? {
+      let all = notes.compactMap { $0 }
+      return all.isEmpty ? nil : all.joined(separator: "; ")
     }
 
     /// Whether `event` is the one the app took last. A control tracking the
@@ -303,15 +329,18 @@
       let path = PointerEvent.path(
         from: from.map { local($0, in: window) } ?? end, to: end, steps: steps)
       let gap = Double(max(0, durationMs)) / 1000 / Double(steps)
+      var lost = 0
       func step(_ n: Int) {
-        window.sendEvent(
-          PointerEvent.make(
-            .moved, at: path[n - 1].point, windowNumber: window.windowNumber,
-            delta: path[n - 1].delta))
+        let made = PointerEvent.made(
+          .moved, at: path[n - 1].point, windowNumber: window.windowNumber,
+          delta: path[n - 1].delta)
+        if !made.kept { lost += 1 }
+        window.sendEvent(made.event)
         if n < steps {
           Self.onRunLoop(after: gap) { step(n + 1) }
         } else {
-          finish(done) { self.ack(window, at: end, note: "hover is not yet measured") }
+          let note = Self.notes("hover is not yet measured", Self.lostNote(lost, of: steps))
+          finish(done) { self.ack(window, at: end, note: note) }
         }
       }
       step(1)
