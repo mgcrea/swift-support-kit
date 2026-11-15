@@ -42,6 +42,61 @@
       #expect(event.timestamp == 42.5)
     }
 
+    /// What CI's runner (macOS 26) did, 2026-11-16: the event made again from its `CGEvent`
+    /// came back at another point of its window, (10, -448) for (10, 20), so a down sent with
+    /// it hit no view. This Mac's AppKit (27) keeps the point through the round trip, and
+    /// loses it once the `CGEvent`'s location has been set, which stands in for it here.
+    @Test func anEventMadeAgainAtAnotherPointIsPutBackAtItsPoint() throws {
+      let window = window()
+      defer { window.close() }
+      let made = try #require(
+        NSEvent.mouseEvent(
+          with: .leftMouseDragged, location: NSPoint(x: 10, y: 20), modifierFlags: [.option],
+          timestamp: 7, windowNumber: window.windowNumber, context: nil, eventNumber: 0,
+          clickCount: 1, pressure: 1))
+      let cg = try #require(made.cgEvent)
+      cg.location = CGPoint(x: cg.location.x + 5, y: cg.location.y + 7)
+      cg.setIntegerValueField(.mouseEventDeltaX, value: 3)
+      cg.setIntegerValueField(.mouseEventDeltaY, value: -4)
+      let event = try #require(
+        PointerEvent.rebuilt(
+          from: cg, at: NSPoint(x: 10, y: 20), windowNumber: window.windowNumber))
+      #expect(event.locationInWindow == NSPoint(x: 10, y: 20))
+      #expect(event.window === window)
+      #expect(event.deltaX == 3)
+      #expect(event.deltaY == -4)
+      #expect(event.modifierFlags.contains(.option))
+      #expect(event.timestamp == 7)
+    }
+
+    /// Wherever the window is, on the main display, past its bottom left, on no display, or
+    /// tall: CI's failing window was at (0, 0), 300 high, never ordered in.
+    @Test func anEventKeepsItsPointWhereverItsWindowIs() {
+      let frames = [
+        CGRect(x: 0, y: 0, width: 400, height: 300),
+        CGRect(x: 250, y: 470, width: 400, height: 300),
+        CGRect(x: -3000, y: -2000, width: 400, height: 300),
+        CGRect(x: 40_000, y: 30_000, width: 200, height: 900),
+      ]
+      for frame in frames {
+        let window = NSWindow(
+          contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        defer { window.close() }
+        for phase in [PointerEvent.Phase.down, .dragged, .up, .moved] {
+          let event = PointerEvent.make(
+            phase, button: .other, at: NSPoint(x: 10, y: 20), windowNumber: window.windowNumber,
+            delta: PointerEvent.Delta(dx: 2, dy: 3))
+          #expect(event.locationInWindow == NSPoint(x: 10, y: 20), "\(frame) \(phase)")
+          #expect(event.window === window)
+        }
+        let scroll = PointerEvent.scroll(
+          at: NSPoint(x: 10, y: 20), windowNumber: window.windowNumber, dx: 0, dy: -3,
+          units: .line)
+        #expect(scroll?.locationInWindow == NSPoint(x: 10, y: 20), "\(frame) scroll")
+      }
+    }
+
     @Test func aClickAndAnUpCarryNoDelta() {
       for phase in [PointerEvent.Phase.down, .up] {
         let event = PointerEvent.make(phase, at: NSPoint(x: 1, y: 2), windowNumber: 0)

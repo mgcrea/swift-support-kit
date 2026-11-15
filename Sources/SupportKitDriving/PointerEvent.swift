@@ -1,5 +1,6 @@
 #if os(macOS) && DEBUG
   import AppKit
+  import ObjectiveC
 
   /// The pointer events the channel sends, made for a window and testable without one.
   ///
@@ -7,9 +8,10 @@
   /// and `deltaY` of 0, and a canvas, a map or a 3D view that moves by them moves nothing.
   /// Each event is made as before, then its `CGEvent` takes the delta (and the middle
   /// button's number, which the same call cannot take either) and the `NSEvent` is made again
-  /// from it. Measured, 2026-11-15: the event made again keeps its window, its point in the
-  /// window, its modifiers and its timestamp. A `CGEvent`'s deltas are whole points: 2.5 set
-  /// as a double reads back as 2, and no public field holds a fraction.
+  /// from it. Measured, 2026-11-15, on macOS 27: the event made again keeps its window, its
+  /// modifiers and its timestamp; its point in the window it keeps there but not on macOS 26,
+  /// so `rebuilt` puts it back. A `CGEvent`'s deltas are whole points: 2.5 set as a double
+  /// reads back as 2, and no public field holds a fraction.
   enum PointerEvent {
     enum Phase {
       case down, dragged, up, moved
@@ -62,7 +64,32 @@
         cg.setIntegerValueField(
           .mouseEventButtonNumber, value: Int64(CGMouseButton.center.rawValue))
       }
-      return NSEvent(cgEvent: cg) ?? plain
+      return rebuilt(from: cg, at: local, windowNumber: windowNumber) ?? plain
+    }
+
+    /// The event made again from `cg`, at `local` in window `windowNumber`; nil if it cannot
+    /// be, and the caller then sends the event it had, without what `cg` added.
+    ///
+    /// Where `NSEvent(cgEvent:)` puts the point depends on the system, not on the event:
+    /// macOS 27 keeps the point the event was made with, unless the `CGEvent`'s location is
+    /// set, when every point comes back (-1, height + 1); CI's macOS 26 gave (10, -448) for
+    /// (10, 20) in a window at (0, 0), 300 high, never ordered in, and missed the view in
+    /// some test windows ordered in past every display and not others. So the point is not
+    /// trusted: an event that came back elsewhere has its point set back, and is checked.
+    /// `NSEvent` keeps it in `_location`, set by key-value coding, which reaches the instance
+    /// variable when there is no setter; a system without that variable gets nil.
+    static func rebuilt(from cg: CGEvent, at local: NSPoint, windowNumber: Int) -> NSEvent? {
+      guard let event = NSEvent(cgEvent: cg), event.windowNumber == windowNumber else {
+        return nil
+      }
+      if event.locationInWindow != local {
+        guard NSEvent.accessInstanceVariablesDirectly,
+          class_getInstanceVariable(NSEvent.self, "_location") != nil
+        else { return nil }
+        event.setValue(NSValue(point: local), forKey: "location")
+        guard event.locationInWindow == local else { return nil }
+      }
+      return event
     }
 
     /// The points a pointer goes through from `start` to `end` in `steps` equal steps, the
@@ -138,7 +165,7 @@
       ] {
         cg.setDoubleValueField(field, value: made.getDoubleValueField(field))
       }
-      return NSEvent(cgEvent: cg)
+      return rebuilt(from: cg, at: local, windowNumber: windowNumber)
     }
   }
 #endif

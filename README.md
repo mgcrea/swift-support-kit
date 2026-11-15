@@ -603,7 +603,9 @@ driving = Driving.startIfRequested()
   drag; a hover's moves the same along its path from `from`; a down, an up and a click carry
   none. A canvas, a map or a 3D view moves by them, and `NSEvent.mouseEvent(with:…)` leaves
   them at 0, so they are set on each event's `CGEvent` and the event made again from it, which
-  keeps its window, its point and its timestamp (measured).
+  keeps its window and its timestamp (measured). Its point in the window it does not always
+  keep (macOS 26 moved it, depending on where the window was and what the window server knew
+  of it), so an event that comes back elsewhere has its point set back, and is checked.
 - **A drag is queued, or paced.** By default its steps and its up are queued before its down,
   so a control that tracks the mouse inside its down (a slider) takes them there, and the drag
   takes no time. `paced` sends step `k` of `n` at `k` × `durationMs` / `n`, each once the app
@@ -629,8 +631,9 @@ driving = Driving.startIfRequested()
   middle button, the modifiers, the pacing (against a view, against a control tracking the
   mouse in its down, and inside a loop run from a main-queue block), a hover's moves and line
   and pixel scrolls reaching an `NSView` were measured in the package's tests, in a window off
-  every display. Those tests have not yet run on CI's runner. Whether a hover fires a tracking area or
-  SwiftUI's `onContinuousHover`, scrolls in SwiftUI or a real app, and WebKit content were not.
+  every display, on macOS 27; CI runs them on macOS 26. Whether a hover fires a tracking area
+  or SwiftUI's `onContinuousHover`, scrolls in SwiftUI or a real app, and WebKit content were
+  not.
   A right-click and a right-button drag are refused: the menu a right-press opens is a window
   of its own, drawn over the person's work, and nothing sent through the channel can close it.
 - **A shortcut the app disabled stays disabled.** In a menu that does not enable its items
