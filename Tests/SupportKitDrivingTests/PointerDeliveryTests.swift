@@ -85,6 +85,7 @@
     let view: RecordingView
 
     init() {
+      DeliveryInFlight.failTheRunIfItEndsInOne()
       NSApplication.shared.setActivationPolicy(.accessory)
       window = HostedWindow(
         contentRect: CGRect(x: 0, y: 0, width: 400, height: 300), styleMask: [.borderless])
@@ -101,17 +102,21 @@
     }
 
     /// Sends `command` and runs the app's event loop until it is acknowledged.
-    func drive(_ command: DrivingCommand) async throws -> EventSynthesis.Ack {
+    func drive(
+      _ command: DrivingCommand, fromMainQueue: Bool = false
+    ) async throws -> EventSynthesis.Ack {
       defer {
         window.orderOut(nil)
         window.close()
       }
       #expect(window.isVisible)
       #expect(!TestHost.isOnScreen(window))
+      DeliveryInFlight.value = true
+      defer { DeliveryInFlight.value = false }
       let outcome = await withCheckedContinuation { continuation in
         CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue) {
           MainActor.assumeIsolated {
-            continuation.resume(returning: Self.run(command))
+            continuation.resume(returning: Self.run(command, fromMainQueue: fromMainQueue))
           }
         }
         CFRunLoopWakeUp(CFRunLoopGetMain())
@@ -122,29 +127,51 @@
     /// The app's loop, for one command, taking events off the queue until the command is
     /// acknowledged. The command is delivered from a timer that fires inside that loop, as
     /// the channel's poll delivers it inside `NSApp.run()`.
-    static func run(_ command: DrivingCommand) -> Result<EventSynthesis.Ack, DrivingFailure>? {
-      var outcome: Result<EventSynthesis.Ack, DrivingFailure>?
-      let deliver = CFRunLoopTimerCreateWithHandler(nil, CFAbsoluteTimeGetCurrent(), 0, 0, 0) {
-        _ in
-        MainActor.assumeIsolated { synthesis.perform(command) { outcome = $0 } }
-      }
-      CFRunLoopAddTimer(CFRunLoopGetMain(), deliver, .commonModes)
+    ///
+    /// `fromMainQueue` delivers it inside a loop that itself runs in a main-queue block, as a
+    /// modal run from a `Task { @MainActor in }`, a `.task {}` or `DispatchQueue.main.async`
+    /// does: the main queue is not drained again until that block returns.
+    ///
+    /// A new `EventSynthesis` each time, as a check that one gone does not take the next
+    /// one's fences (it did, when its monitor swallowed every fence).
+    static func run(
+      _ command: DrivingCommand, fromMainQueue: Bool = false
+    ) -> Result<EventSynthesis.Ack, DrivingFailure>? {
+      let synthesis = EventSynthesis()
+      var answered: Result<EventSynthesis.Ack, DrivingFailure>?
+      var answeredInTheBlock: Result<EventSynthesis.Ack, DrivingFailure>?
       let deadline = Date(timeIntervalSinceNow: 5)
-      while outcome == nil, Date() < deadline {
-        if let event = NSApp.nextEvent(
-          matching: .any, until: Date(timeIntervalSinceNow: 0.002), inMode: .default,
-          dequeue: true)
-        {
-          NSApp.sendEvent(event)
+      func pump(until deadline: Date) {
+        while answered == nil, Date() < deadline {
+          if let event = NSApp.nextEvent(
+            matching: .any, until: Date(timeIntervalSinceNow: 0.002), inMode: .default,
+            dequeue: true)
+          {
+            NSApp.sendEvent(event)
+          }
         }
       }
-      return outcome
+      func perform() { synthesis.perform(command) { answered = $0 } }
+      let deliver = CFRunLoopTimerCreateWithHandler(nil, CFAbsoluteTimeGetCurrent(), 0, 0, 0) {
+        _ in
+        MainActor.assumeIsolated {
+          guard fromMainQueue else { return perform() }
+          DispatchQueue.main.async {
+            MainActor.assumeIsolated {
+              perform()
+              pump(until: deadline)
+              answeredInTheBlock = answered
+            }
+          }
+        }
+      }
+      CFRunLoopAddTimer(CFRunLoopGetMain(), deliver, .commonModes)
+      // Past the deadline, so that whatever the command still sends is taken here: an
+      // event posted once this returns would end the test process (see the suite's doc).
+      pump(until: deadline.addingTimeInterval(3))
+      withExtendedLifetime(synthesis) {}
+      return fromMainQueue ? answeredInTheBlock : answered
     }
-
-    /// One for the whole run, as `Driving` holds one for the life of the app: each adds a
-    /// monitor that takes the fences it queues, and one made per test was measured to take
-    /// the next test's fences once it was gone, so that test's ack never came.
-    static let synthesis = EventSynthesis()
 
     /// Every step and the up after the one before it was handled: each was made (and sent)
     /// once the view was done with the one before, even when the view held the main thread
@@ -218,6 +245,40 @@
       #expect(took >= 0.09, "the drag took \(took) s")
     }
 
+    /// Delivered inside a loop that runs in a main-queue block, as in a modal opened from a
+    /// `Task { @MainActor in }`: the steps and the up still go, on the run loop's timers, so
+    /// a control tracking the mouse in its down is not left holding the button.
+    @Test func aPacedDragGoesInsideALoopRunFromTheMainQueue() async throws {
+      view.tracksInItsDown = true
+      _ = try await drive(
+        .drag(
+          from: global(NSPoint(x: 10, y: 10)), to: global(NSPoint(x: 90, y: 10)),
+          durationMs: 100, paced: true),
+        fromMainQueue: true)
+      let seen = view.seen
+      #expect(
+        seen.map(\.type)
+          == [.leftMouseDown] + Array(repeating: .leftMouseDragged, count: 4) + [.leftMouseUp])
+      expectPaced(seen)
+    }
+
+    /// The version 1 slider path: every step and the up queued before the down, taken by a
+    /// control tracking the mouse inside it.
+    @Test func aQueuedDragReachesAControlTrackingTheMouseInItsDown() async throws {
+      view.tracksInItsDown = true
+      _ = try await drive(
+        .drag(
+          from: global(NSPoint(x: 10, y: 10)), to: global(NSPoint(x: 10, y: 90)),
+          durationMs: 100))
+      let seen = view.seen
+      #expect(
+        seen.map(\.type)
+          == [.leftMouseDown] + Array(repeating: .leftMouseDragged, count: 4) + [.leftMouseUp])
+      let down = try #require(seen.first)
+      #expect(seen.dropFirst().allSatisfy { $0.sent <= down.handled })
+      #expect(seen.map(\.delta.dy).reduce(0, +) == -80)
+    }
+
     /// With `from`, the moves go from it to the point, and say which way.
     @Test func aHoverMovesAlongItsPath() async throws {
       _ = try await drive(
@@ -239,6 +300,16 @@
       #expect(scroll.scrolled.dy == -30)
       #expect(scroll.point == NSPoint(x: 20, y: 30))
     }
+
+    /// A mouse wheel's scroll, the default, reaches the view under its point too: version 1
+    /// hit-tested the screen point, which in a window off every display is no view.
+    @Test func aLineScrollReachesTheViewUnderItsPoint() async throws {
+      _ = try await drive(.scroll(point: global(NSPoint(x: 20, y: 30)), dx: 0, dy: -3))
+      let scroll = try #require(view.seen.first { $0.type == .scrollWheel })
+      #expect(!scroll.precise)
+      #expect(scroll.delta.dy == -3)
+      #expect(scroll.point == NSPoint(x: 20, y: 30))
+    }
   }
 
   extension NSWindow {
@@ -246,6 +317,26 @@
     fileprivate func acceptsMouseEvents() {
       acceptsMouseMovedEvents = true
       if let view = contentView { makeFirstResponder(view) }
+    }
+  }
+
+  /// Whether a delivery test is under way. The test process ends with exit 0 when an event is
+  /// posted while its own loop is in charge (see `PointerDeliveryTests`), which a failing
+  /// delivery test can cause, and the run then reports no failure at all: exiting in one
+  /// exits 1 instead.
+  enum DeliveryInFlight {
+    nonisolated(unsafe) static var value = false
+    nonisolated(unsafe) private static var armed = false
+
+    static func failTheRunIfItEndsInOne() {
+      guard !armed else { return }
+      armed = true
+      atexit {
+        guard DeliveryInFlight.value else { return }
+        FileHandle.standardError.write(
+          Data("the test process ended inside a delivery test: failing the run\n".utf8))
+        _exit(1)
+      }
     }
   }
 #endif

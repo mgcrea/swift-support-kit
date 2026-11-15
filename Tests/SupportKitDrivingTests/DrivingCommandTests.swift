@@ -104,6 +104,34 @@ import Testing
     }
   }
 
+  /// Only a JSON boolean: `1` bridges to `true` through NSNumber, and is refused all the same.
+  @Test func aPacingOfOneIsRefused() {
+    #expect(throws: DrivingCommand.ParseError.self) {
+      try DrivingCommand.parse(
+        line: #"{"seq":3,"verb":"drag","from":[1,2],"to":[3,4],"paced":1}"#)
+    }
+    #expect(
+      (try? DrivingCommand.parse(
+        line: #"{"seq":3,"verb":"drag","from":[1,2],"to":[3,4],"paced":false}"#)) != nil)
+  }
+
+  /// A point past any display is refused when parsed: as a whole number of points it would
+  /// trap converting to `Int`, and crash the app.
+  @Test func aPointPastAnyDisplayIsRefused() {
+    for line in [
+      #"{"seq":1,"verb":"drag","from":[10,10],"to":[1e19,0]}"#,
+      #"{"seq":1,"verb":"hover","x":5,"y":6,"from":[-1e19,0]}"#,
+      #"{"seq":1,"verb":"click","x":1e19,"y":2}"#,
+      #"{"seq":1,"verb":"scroll","x":1,"y":2000001,"dy":-1}"#,
+    ] {
+      #expect(throws: DrivingCommand.ParseError.self, "\(line)") {
+        try DrivingCommand.parse(line: line)
+      }
+    }
+    #expect(
+      (try? DrivingCommand.parse(line: #"{"seq":1,"verb":"click","x":-5000,"y":3000}"#)) != nil)
+  }
+
   /// The middle button is a drag's: a click takes the left one only.
   @Test func aClickWithTheOtherButtonIsRefused() {
     #expect(throws: DrivingCommand.ParseError.self) {

@@ -21,13 +21,15 @@ import Foundation
 ///     {"seq":9,"verb":"scroll","x":5,"y":6,"dy":-30,"units":"pixel"}
 ///
 /// Points are global display points with a TOP-LEFT origin, the space every
-/// Cupertino tool reads and writes; the app flips them itself.
+/// Cupertino tool reads and writes; the app flips them itself. A point past
+/// ±`maxCoordinate` on either axis is refused.
 public enum DrivingCommand: Equatable, Sendable {
   case click(point: CGPoint, button: Button, count: Int)
   /// `button` is `left` or `other` (the middle button), and `modifiers` are held
   /// on the down, every step and the up. Unless `paced`, every step and the up
   /// are queued before the down, so the drag takes no time; `paced` sends each
-  /// step at its time over `durationMs`, once the app has taken the one before.
+  /// step at its time over `durationMs`, once the app has taken the one before,
+  /// and ends within `durationMs` plus a second if the app takes nothing.
   case drag(
     from: CGPoint, to: CGPoint, durationMs: Int, button: Button = .left,
     modifiers: [Modifier] = [], paced: Bool = false)
@@ -72,17 +74,30 @@ public enum DrivingCommand: Equatable, Sendable {
     let verb = object["verb"] as? String ?? ""
 
     func number(_ key: String) -> Double? { (object[key] as? NSNumber)?.doubleValue }
+    // A point past any display would trap where the app makes it a whole
+    // number of points (a drag's deltas, a message naming it), so it is
+    // refused here, for every verb.
+    func onSomeDisplay(_ point: CGPoint, _ name: String) throws -> CGPoint {
+      guard abs(point.x) <= maxCoordinate, abs(point.y) <= maxCoordinate else {
+        throw ParseError(
+          description:
+            "\(verb)'s \(name) is past any display: coordinates are within "
+            + "±\(Int(maxCoordinate)) points")
+      }
+      return point
+    }
     func point() throws -> CGPoint {
       guard let x = number("x"), let y = number("y") else {
         throw ParseError(description: "\(verb) needs x and y")
       }
-      return CGPoint(x: x, y: y)
+      return try onSomeDisplay(CGPoint(x: x, y: y), "point")
     }
     func pair(_ key: String) throws -> CGPoint {
       guard let values = object[key] as? [NSNumber], values.count == 2 else {
         throw ParseError(description: "\(verb) needs \(key) as [x, y]")
       }
-      return CGPoint(x: values[0].doubleValue, y: values[1].doubleValue)
+      return try onSomeDisplay(
+        CGPoint(x: values[0].doubleValue, y: values[1].doubleValue), key)
     }
     let durationMs = (object["durationMs"] as? NSNumber)?.intValue
     func pointerButton() throws -> Button {
@@ -137,9 +152,9 @@ public enum DrivingCommand: Equatable, Sendable {
       }
       var paced = false
       if let raw = object["paced"] {
-        guard let value = raw as? Bool else {
-          throw ParseError(description: "paced is true or false")
-        }
+        // A JSON boolean only: NSNumber bridges `1` to true as well.
+        guard CFGetTypeID(raw as CFTypeRef) == CFBooleanGetTypeID(), let value = raw as? Bool
+        else { throw ParseError(description: "paced is true or false") }
         paced = value
       }
       command = .drag(
@@ -171,6 +186,10 @@ public enum DrivingCommand: Equatable, Sendable {
     }
     return Envelope(seq: seq, command: command)
   }
+
+  /// How far from the main display's origin a point may be, in points: past
+  /// any arrangement of displays, and well inside what a whole number holds.
+  static let maxCoordinate: Double = 1_000_000
 
   /// A key's virtual key code: a POSITION, not a letter. The named keys are
   /// the ones Cupertino's `apple_desktop_key` knows, at the positions no layout

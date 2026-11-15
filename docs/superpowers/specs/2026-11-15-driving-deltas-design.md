@@ -44,8 +44,9 @@ the viewport also reads, cannot be sent.
 - **Pixel scrolls.** `scroll` takes `units`: `line` (the default, as today) or `pixel`, a precise
   scroll as a trackpad sends.
 - **The protocol's version.** The `ready` event says `"version": 2`, so Cupertino can tell which
-  verbs an app's channel takes; version 1 apps refuse the new fields as unknown, so Cupertino
-  sends them only to version 2.
+  verbs an app's channel takes. A version 1 app ignores the new fields, so a `"button":"other"`
+  drag silently becomes a left drag there: Cupertino checks `version` and sends them only to
+  version 2.
 
 ## Not here
 

@@ -15,6 +15,10 @@
   /// app never became active. A click needs its up QUEUED first, because
   /// NSButton's mouse-down runs a tracking loop that pulls the next mouse event
   /// off the queue and would otherwise wait for a real one.
+  ///
+  /// Keep one for the life of the process, as `Driving` does: each adds an event
+  /// monitor for its fences that it never removes. A fence whose owner is gone
+  /// passes that monitor by, and fences are numbered across all instances.
   @MainActor
   final class EventSynthesis {
     struct Ack {
@@ -102,7 +106,26 @@
     /// One run-loop turn after the effect, so SwiftUI has applied it before the
     /// agent reads the screen back.
     private func finish(_ done: @escaping Done, _ ack: @escaping @MainActor () -> Ack) {
-      DispatchQueue.main.async { MainActor.assumeIsolated { done(.success(ack())) } }
+      Self.onRunLoop { done(.success(ack())) }
+    }
+
+    /// Runs `block` from a timer on the main run loop, in its common modes, after
+    /// `seconds`, rather than from the main queue.
+    ///
+    /// The channel's poll runs in the common modes, so a command arrives inside
+    /// a control's tracking loop or a modal too, and a modal run from a main-queue
+    /// block (a `Task { @MainActor in }`, a `.task {}`, `DispatchQueue.main.async`)
+    /// does not drain the main queue again until it ends. A drag paced from the
+    /// main queue there sent its down and nothing after it, and a control tracking
+    /// the mouse in that down held the button and the app (measured, in
+    /// `PointerDeliveryTests`); a timer fires in all of those loops.
+    static func onRunLoop(
+      after seconds: TimeInterval = 0, _ block: @escaping @MainActor () -> Void
+    ) {
+      let timer = CFRunLoopTimerCreateWithHandler(
+        nil, CFAbsoluteTimeGetCurrent() + max(0, seconds), 0, 0, 0
+      ) { _ in MainActor.assumeIsolated { block() } }
+      CFRunLoopAddTimer(CFRunLoopGetMain(), timer, .commonModes)
     }
 
     /// `finish`, but only once every event queued before it has been handled.
@@ -122,15 +145,24 @@
     /// the app's own loop takes it, so once it has taken them all.
     private func fence(_ reached: @escaping @MainActor () -> Void) {
       if fenceMonitor == nil {
+        // Only the fences of this instance, numbered across all of them, so a
+        // fence whose owner is gone passes on rather than being swallowed.
         fenceMonitor = NSEvent.addLocalMonitorForEvents(matching: .applicationDefined) {
           [weak self] event in
           guard event.subtype.rawValue == Self.fenceSubtype else { return event }
-          MainActor.assumeIsolated { self?.fences.removeValue(forKey: event.data1)?() }
-          return nil
+          let token = event.data1
+          let ours = MainActor.assumeIsolated { () -> Bool in
+            guard let self, let reached = self.fences.removeValue(forKey: token) else {
+              return false
+            }
+            reached()
+            return true
+          }
+          return ours ? nil : event
         }
       }
-      nextFence += 1
-      let token = nextFence
+      Self.nextFence += 1
+      let token = Self.nextFence
       fences[token] = reached
       guard
         let marker = NSEvent.otherEvent(
@@ -146,7 +178,7 @@
     private static let fenceSubtype: Int16 = 0x5344
     private var fenceMonitor: Any?
     private var fences: [Int: @MainActor () -> Void] = [:]
-    private var nextFence = 0
+    private static var nextFence = 0
 
     // ─── the pointer ─────────────────────────────────────────────────────────
 
@@ -181,7 +213,8 @@
     /// between events sees them one at a time. They are still queued, one at a
     /// time, so a control tracking the mouse inside its down takes them too.
     /// Taken means the fence queued behind it was reached (the app's own loop)
-    /// or it is the current event (a control's tracking loop).
+    /// or it is the current event (a control's tracking loop). Patience is a
+    /// bound per drag (see `DragPacer`).
     private func drag(
       from: CGPoint, to: CGPoint, durationMs: Int, button: DrivingCommand.Button,
       flags: NSEvent.ModifierFlags, paced: Bool, done: @escaping Done
@@ -215,10 +248,10 @@
         return
       }
       // Scheduled before the down is sent: a control tracking the mouse does
-      // not return from it until the up, and the steps are sent from inside it.
-      let pacer = DragPacer(steps: steps, durationMs: durationMs)
+      // not return from it until the up, and the steps are sent from inside it,
+      // on the run loop's timers (see `onRunLoop`).
+      var pacer = DragPacer(steps: steps, durationMs: durationMs)
       let begin = ProcessInfo.processInfo.systemUptime
-      var unconfirmed = 0
       var passed = Set<Int>()
       func send(_ index: Int, after previous: NSEvent?) {
         let wait = pacer.wait(
@@ -226,8 +259,7 @@
           previousTaken: previous.map { passed.contains(index - 1) || Self.isCurrent($0) } ?? true,
           previousSent: previous.map { $0.timestamp - begin })
         switch wait {
-        case .now(let notTaken):
-          if notTaken { unconfirmed += 1 }
+        case .now:
           let sent = event(index)
           NSApp.postEvent(sent, atStart: false)
           fence { passed.insert(index) }
@@ -235,19 +267,18 @@
             send(index + 1, after: sent)
           } else {
             let note =
-              unconfirmed == 0
+              pacer.unconfirmed == 0
               ? nil
-              : "paced: \(unconfirmed) of \(count) events were sent before the app had taken "
-                + "the one before, after waiting \(Int(DragPacer.patience * 1000)) ms for it"
+              : "paced: \(pacer.unconfirmed) of \(count) events were sent before the app had "
+                + "taken the one before, once it had not taken one after "
+                + "\(Int(DragPacer.patience * 1000)) ms"
             finishAfterQueued(done) { self.ack(window, at: end, note: note) }
           }
         case .after(let seconds):
-          DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
-            MainActor.assumeIsolated { send(index, after: previous) }
-          }
+          Self.onRunLoop(after: seconds) { send(index, after: previous) }
         }
       }
-      DispatchQueue.main.async { MainActor.assumeIsolated { send(0, after: nil) } }
+      Self.onRunLoop { send(0, after: nil) }
       window.sendEvent(down)
     }
 
@@ -278,9 +309,7 @@
             .moved, at: path[n - 1].point, windowNumber: window.windowNumber,
             delta: path[n - 1].delta))
         if n < steps {
-          DispatchQueue.main.asyncAfter(deadline: .now() + gap) {
-            MainActor.assumeIsolated { step(n + 1) }
-          }
+          Self.onRunLoop(after: gap) { step(n + 1) }
         } else {
           finish(done) { self.ack(window, at: end, note: "hover is not yet measured") }
         }

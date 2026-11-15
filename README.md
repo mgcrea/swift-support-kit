@@ -608,8 +608,14 @@ driving = Driving.startIfRequested()
   so a control that tracks the mouse inside its down (a slider) takes them there, and the drag
   takes no time. `paced` sends step `k` of `n` at `k` × `durationMs` / `n`, each once the app
   has taken the one before, for a view that animates or throttles between events; a control
-  tracking the mouse takes those too. One the app has not taken after a second goes anyway,
-  and the ack's `note` says how many did.
+  tracking the mouse takes those too. The steps go on the main run loop's timers, in its
+  common modes, so a drag also completes inside a modal run from a main-queue block. Patience
+  is a second per drag: once the app has not taken an event a second after it was sent, the
+  next goes, and every one after it at its own time without waiting, so a drag ends within
+  `durationMs` plus a second; the ack's `note` says how many went before the one before was
+  taken. The channel does not wait for one command to finish before it performs the next, so
+  a caller waits for a paced drag's ack for up to `durationMs` plus that second before it
+  sends anything else.
 - **A scroll reaches the view under its point**, in `line` units as a mouse's wheel or
   `pixel`, a trackpad's precise scroll (`hasPreciseScrollingDeltas`, `scrollingDeltaY` in
   points). It is made by CoreGraphics and its deltas copied onto a mouse event made for the
@@ -620,9 +626,10 @@ driving = Driving.startIfRequested()
   name. An inactive app has no key window, and a key equivalent posted from outside is ignored.
 - **Measured, and not yet measured.** Keys, clicks on AppKit and SwiftUI buttons, click to
   focus and Select All were measured with Cupertino's `make channel-check`. The deltas, the
-  middle button, the modifiers, the pacing (against a view and against a control tracking the
-  mouse in its down), a hover's moves and a pixel scroll reaching an `NSView` were measured in
-  the package's tests, in a window off every display. Whether a hover fires a tracking area or
+  middle button, the modifiers, the pacing (against a view, against a control tracking the
+  mouse in its down, and inside a loop run from a main-queue block), a hover's moves and line
+  and pixel scrolls reaching an `NSView` were measured in the package's tests, in a window off
+  every display. Those tests have not yet run on CI's runner. Whether a hover fires a tracking area or
   SwiftUI's `onContinuousHover`, scrolls in SwiftUI or a real app, and WebKit content were not.
   A right-click and a right-button drag are refused: the menu a right-press opens is a window
   of its own, drawn over the person's work, and nothing sent through the channel can close it.

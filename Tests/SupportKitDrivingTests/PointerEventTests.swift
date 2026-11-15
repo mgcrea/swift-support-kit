@@ -154,9 +154,11 @@
     }
 
     /// A number past what a scroll wheel field holds is clamped, not a crash of the app.
-    @Test func aHugeScrollIsClamped() {
-      #expect(
-        PointerEvent.scroll(at: .zero, windowNumber: 0, dx: 0, dy: 1e12, units: .pixel) != nil)
+    @Test func aHugeScrollIsClamped() throws {
+      let event = try #require(
+        PointerEvent.scroll(at: .zero, windowNumber: 0, dx: -1e12, dy: 1e12, units: .pixel))
+      #expect(event.scrollingDeltaY == 1_000_000)
+      #expect(event.scrollingDeltaX == -1_000_000)
     }
 
     /// Version 2 is what tells Cupertino the channel takes the fields above.
