@@ -41,10 +41,123 @@ import Testing
         == .drag(from: CGPoint(x: 1, y: 2), to: CGPoint(x: 30, y: 40), durationMs: 250))
   }
 
+  /// A drag that says nothing more is what every caller sent before version 2: the left
+  /// button, no modifier, its steps queued at once.
+  @Test func aDragDefaultsToALeftQueuedDragWithNoModifier() throws {
+    let envelope = try DrivingCommand.parse(
+      line: #"{"seq":3,"verb":"drag","from":[1,2],"to":[30,40]}"#)
+    #expect(
+      envelope.command
+        == .drag(
+          from: CGPoint(x: 1, y: 2), to: CGPoint(x: 30, y: 40), durationMs: 300, button: .left,
+          modifiers: [], paced: false))
+  }
+
+  /// The middle button and Option, as Maquette's viewport pans, sent in real time.
+  @Test func parsesADragsButtonModifiersAndPacing() throws {
+    let envelope = try DrivingCommand.parse(
+      line:
+        #"{"seq":3,"verb":"drag","from":[1,2],"to":[30,40],"durationMs":400,"button":"other","modifiers":["Option","shift"],"paced":true}"#
+    )
+    #expect(
+      envelope.command
+        == .drag(
+          from: CGPoint(x: 1, y: 2), to: CGPoint(x: 30, y: 40), durationMs: 400, button: .other,
+          modifiers: [.option, .shift], paced: true))
+  }
+
+  /// A right-press can open a context menu, which the channel could never close: refused on
+  /// a drag for the reason it is on a click.
+  @Test func aRightButtonDragIsRefused() {
+    do {
+      _ = try DrivingCommand.parse(
+        line: #"{"seq":3,"verb":"drag","from":[1,2],"to":[3,4],"button":"right"}"#)
+      Issue.record("a right-button drag parsed")
+    } catch {
+      #expect("\(error)".contains("context menu"))
+    }
+  }
+
+  @Test func anUnknownButtonIsRefusedByName() {
+    do {
+      _ = try DrivingCommand.parse(
+        line: #"{"seq":3,"verb":"drag","from":[1,2],"to":[3,4],"button":"middle"}"#)
+      Issue.record("an unknown button parsed")
+    } catch {
+      #expect("\(error)".contains("middle"))
+    }
+  }
+
+  @Test func anUnknownModifierOnADragIsRefused() {
+    #expect(throws: DrivingCommand.ParseError.self) {
+      try DrivingCommand.parse(
+        line: #"{"seq":3,"verb":"drag","from":[1,2],"to":[3,4],"modifiers":["hyper"]}"#)
+    }
+  }
+
+  /// `"paced":"true"` read as false would queue the drag the caller asked to pace, and say
+  /// nothing.
+  @Test func aPacingThatIsNotTrueOrFalseIsRefused() {
+    #expect(throws: DrivingCommand.ParseError.self) {
+      try DrivingCommand.parse(
+        line: #"{"seq":3,"verb":"drag","from":[1,2],"to":[3,4],"paced":"true"}"#)
+    }
+  }
+
+  /// The middle button is a drag's: a click takes the left one only.
+  @Test func aClickWithTheOtherButtonIsRefused() {
+    #expect(throws: DrivingCommand.ParseError.self) {
+      try DrivingCommand.parse(line: #"{"seq":1,"verb":"click","x":1,"y":2,"button":"other"}"#)
+    }
+  }
+
   @Test func parsesAHover() throws {
     let envelope = try DrivingCommand.parse(
       line: #"{"seq":4,"verb":"hover","x":5,"y":6,"durationMs":0}"#)
     #expect(envelope.command == .hover(point: CGPoint(x: 5, y: 6), durationMs: 0))
+  }
+
+  /// Without `from`, as before version 2: every move at the point, with no delta.
+  @Test func aHoverHasNoPathByDefault() throws {
+    let envelope = try DrivingCommand.parse(line: #"{"seq":4,"verb":"hover","x":5,"y":6}"#)
+    #expect(envelope.command == .hover(point: CGPoint(x: 5, y: 6), durationMs: 600, from: nil))
+  }
+
+  @Test func parsesAHoversPath() throws {
+    let envelope = try DrivingCommand.parse(
+      line: #"{"seq":4,"verb":"hover","x":5,"y":6,"from":[1,2],"durationMs":300}"#)
+    #expect(
+      envelope.command
+        == .hover(point: CGPoint(x: 5, y: 6), durationMs: 300, from: CGPoint(x: 1, y: 2)))
+  }
+
+  @Test func aHoverFromThatIsNotAPairIsRefused() {
+    #expect(throws: DrivingCommand.ParseError.self) {
+      try DrivingCommand.parse(line: #"{"seq":4,"verb":"hover","x":5,"y":6,"from":[1]}"#)
+    }
+  }
+
+  @Test func aScrollDefaultsToLines() throws {
+    let envelope = try DrivingCommand.parse(
+      line: #"{"seq":5,"verb":"scroll","x":5,"y":6,"dy":-3}"#)
+    #expect(envelope.command == .scroll(point: CGPoint(x: 5, y: 6), dx: 0, dy: -3, units: .line))
+  }
+
+  @Test func parsesAPixelScroll() throws {
+    let envelope = try DrivingCommand.parse(
+      line: #"{"seq":5,"verb":"scroll","x":5,"y":6,"dx":4,"dy":-30,"units":"pixel"}"#)
+    #expect(
+      envelope.command == .scroll(point: CGPoint(x: 5, y: 6), dx: 4, dy: -30, units: .pixel))
+  }
+
+  @Test func anUnknownUnitIsRefusedByName() {
+    do {
+      _ = try DrivingCommand.parse(
+        line: #"{"seq":5,"verb":"scroll","x":5,"y":6,"dy":-1,"units":"page"}"#)
+      Issue.record("an unknown unit parsed")
+    } catch {
+      #expect("\(error)".contains("page"))
+    }
   }
 
   @Test func parsesAScroll() throws {

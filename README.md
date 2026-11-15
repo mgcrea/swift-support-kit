@@ -582,16 +582,50 @@ driving = Driving.startIfRequested()
   Xcode scheme can pass it too.
 - **The channel is `<NSTemporaryDirectory()>/SupportKitDriving/<pid>/`**, inside the app's
   container when it is sandboxed. `commands.jsonl` takes one `DrivingCommand` per line, in
-  global top-left points; `events.jsonl` gets `ready`, then an `ack` (what was hit, what has
-  the focus) or an `error` for each `seq`.
+  global top-left points; `events.jsonl` gets `ready` (with the channel's `version`, now 2),
+  then an `ack` (what was hit, what has the focus) or an `error` for each `seq`.
+- **The commands**, each line with its `seq`; a field with a default may be left out,
+  and the default is in parentheses, first where there is a choice:
+
+  | verb | fields |
+  | --- | --- |
+  | `click` | `x`, `y`, `button` (`left`, the only one), `count` (1) |
+  | `drag` | `from`, `to` as `[x, y]`, `durationMs` (300), `button` (`left`, or `other`, the middle one), `modifiers` (none), `paced` (false) |
+  | `hover` | `x`, `y`, `durationMs` (600), `from` as `[x, y]` (none) |
+  | `scroll` | `x`, `y`, `dx` and `dy` (0), `units` (`line`, or `pixel`) |
+  | `type` | `text` |
+  | `key` | `key`, `modifiers` (none; `command`, `shift`, `option`, `control`, as a drag takes them) |
+
+  Version 2 added a drag's `button`, `modifiers` and `paced`, a hover's `from` and a scroll's
+  `units`. A version 1 app ignores them and does what it did, so send them only to 2.
+- **Pointer events carry their movement.** A drag step's `deltaX`/`deltaY` is its movement
+  from the step before, in whole points, y down as AppKit's are, and they add up to the whole
+  drag; a hover's moves the same along its path from `from`; a down, an up and a click carry
+  none. A canvas, a map or a 3D view moves by them, and `NSEvent.mouseEvent(with:…)` leaves
+  them at 0, so they are set on each event's `CGEvent` and the event made again from it, which
+  keeps its window, its point and its timestamp (measured).
+- **A drag is queued, or paced.** By default its steps and its up are queued before its down,
+  so a control that tracks the mouse inside its down (a slider) takes them there, and the drag
+  takes no time. `paced` sends step `k` of `n` at `k` × `durationMs` / `n`, each once the app
+  has taken the one before, for a view that animates or throttles between events; a control
+  tracking the mouse takes those too. One the app has not taken after a second goes anyway,
+  and the ack's `note` says how many did.
+- **A scroll reaches the view under its point**, in `line` units as a mouse's wheel or
+  `pixel`, a trackpad's precise scroll (`hasPreciseScrollingDeltas`, `scrollingDeltaY` in
+  points). It is made by CoreGraphics and its deltas copied onto a mouse event made for the
+  window: one made at a screen point found no window, and was hit-tested at the screen point.
 - **The app hit-tests its own windows**, so a window covered by another app's still takes the
   click, and the app never becomes active.
 - **Shortcuts are matched against the main menu** and sent to the window's first responder by
   name. An inactive app has no key window, and a key equivalent posted from outside is ignored.
 - **Measured, and not yet measured.** Keys, clicks on AppKit and SwiftUI buttons, click to
-  focus and Select All were measured with Cupertino's `make channel-check`. Hover, scroll and
-  WebKit content were not. A right-click is refused: the menu it opens is a window of its own,
-  drawn over the person's work, and nothing sent through the channel can close it.
+  focus and Select All were measured with Cupertino's `make channel-check`. The deltas, the
+  middle button, the modifiers, the pacing (against a view and against a control tracking the
+  mouse in its down), a hover's moves and a pixel scroll reaching an `NSView` were measured in
+  the package's tests, in a window off every display. Whether a hover fires a tracking area or
+  SwiftUI's `onContinuousHover`, scrolls in SwiftUI or a real app, and WebKit content were not.
+  A right-click and a right-button drag are refused: the menu a right-press opens is a window
+  of its own, drawn over the person's work, and nothing sent through the channel can close it.
 - **A shortcut the app disabled stays disabled.** In a menu that does not enable its items
   automatically, as SwiftUI command menus do not, the item's `isEnabled` decides. Otherwise the
   target is asked, as AppKit would ask it from the key window.

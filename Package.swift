@@ -135,7 +135,9 @@ let package = Package(
     .testTarget(name: "SupportKitMemoryTests", dependencies: ["SupportKitMemory"]),
     .testTarget(name: "SupportKitModelsTests", dependencies: ["SupportKitModels"]),
     .testTarget(name: "SupportKitStoreTests", dependencies: ["SupportKitStore"]),
-    .testTarget(name: "SupportKitDrivingTests", dependencies: ["SupportKitDriving"]),
+    // The test host's off-screen window, for the tests that send a drag through a real one.
+    .testTarget(
+      name: "SupportKitDrivingTests", dependencies: ["SupportKitDriving", "SupportKitTestHost"]),
     .testTarget(name: "SupportKitTestHostTests", dependencies: ["SupportKitTestHost"]),
     // Depends on no module: it reads the sources and the catalogs off disk, so a
     // lookup that happens to resolve at runtime for the wrong reason cannot fool it.

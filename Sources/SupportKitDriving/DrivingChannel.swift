@@ -36,11 +36,16 @@
       events = directory.appendingPathComponent("events.jsonl")
     }
 
+    /// What the `ready` event says the channel takes. Version 2 added a drag's
+    /// `button`, `modifiers` and `paced`, a hover's `from` and a scroll's
+    /// `units`; a version 1 app ignores them, so the agent sends them only to 2.
+    static let version = 2
+
     /// Polls every 10 ms, in the common run-loop modes: a menu or a control
     /// tracking the mouse runs the loop in its tracking mode, and a timer in
     /// the default mode alone would stop reading until it ended.
     func start(_ handle: @escaping @MainActor (String) -> Void) {
-      write(["kind": "ready", "pid": Int(getpid()), "version": 1])
+      write(["kind": "ready", "pid": Int(getpid()), "version": Self.version])
       let timer = Timer(timeInterval: 0.01, repeats: true) { [weak self] _ in
         MainActor.assumeIsolated { self?.poll(handle) }
       }
@@ -49,6 +54,12 @@
       NotificationCenter.default.addObserver(
         forName: NSApplication.willTerminateNotification, object: nil, queue: .main
       ) { [directory] _ in try? FileManager.default.removeItem(at: directory) }
+    }
+
+    /// Stops reading commands.
+    func stop() {
+      timer?.invalidate()
+      timer = nil
     }
 
     func write(_ event: [String: Any]) {

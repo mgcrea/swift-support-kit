@@ -29,8 +29,9 @@ import Foundation
 ///
 /// The channel is `<NSTemporaryDirectory()>/SupportKitDriving/<pid>/`, which
 /// for a sandboxed app is inside its own container. `commands.jsonl` takes one
-/// `DrivingCommand` line per command; `events.jsonl` gets `ready` once, then an
-/// `ack` or an `error` for each command's `seq`.
+/// `DrivingCommand` line per command; `events.jsonl` gets `ready` once, with
+/// the channel's `version` (2), then an `ack` or an `error` for each
+/// command's `seq`.
 @MainActor
 public final class Driving {
   /// Nil unless this is a DEBUG build of a Mac app launched with

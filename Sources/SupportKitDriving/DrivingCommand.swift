@@ -12,18 +12,41 @@ import Foundation
 ///     {"seq":5,"verb":"type","text":"hello"}
 ///     {"seq":6,"verb":"key","key":"a","modifiers":["command"]}
 ///
+/// Version 2 of the channel (its `ready` event says which) adds optional fields,
+/// each defaulting to what version 1 did:
+///
+///     {"seq":7,"verb":"drag","from":[1,2],"to":[30,40],"durationMs":400,
+///      "button":"other","modifiers":["option"],"paced":true}
+///     {"seq":8,"verb":"hover","x":5,"y":6,"from":[1,2],"durationMs":300}
+///     {"seq":9,"verb":"scroll","x":5,"y":6,"dy":-30,"units":"pixel"}
+///
 /// Points are global display points with a TOP-LEFT origin, the space every
 /// Cupertino tool reads and writes; the app flips them itself.
 public enum DrivingCommand: Equatable, Sendable {
   case click(point: CGPoint, button: Button, count: Int)
-  case drag(from: CGPoint, to: CGPoint, durationMs: Int)
-  case hover(point: CGPoint, durationMs: Int)
-  case scroll(point: CGPoint, dx: Double, dy: Double)
+  /// `button` is `left` or `other` (the middle button), and `modifiers` are held
+  /// on the down, every step and the up. Unless `paced`, every step and the up
+  /// are queued before the down, so the drag takes no time; `paced` sends each
+  /// step at its time over `durationMs`, once the app has taken the one before.
+  case drag(
+    from: CGPoint, to: CGPoint, durationMs: Int, button: Button = .left,
+    modifiers: [Modifier] = [], paced: Bool = false)
+  /// With `from`, the moves go from it to `point`, and their deltas say which
+  /// way; without it, every move is at `point`.
+  case hover(point: CGPoint, durationMs: Int, from: CGPoint? = nil)
+  /// `line` units, as a mouse's wheel sends, or `pixel`, a trackpad's precise
+  /// scroll.
+  case scroll(point: CGPoint, dx: Double, dy: Double, units: ScrollUnits = .line)
   case type(text: String)
   case key(name: String, modifiers: [Modifier])
 
+  /// `other` is the middle button. Only a drag takes it.
   public enum Button: String, Sendable {
-    case left, right
+    case left, right, other
+  }
+
+  public enum ScrollUnits: String, Sendable {
+    case line, pixel
   }
 
   public enum Modifier: String, Sendable {
@@ -62,33 +85,77 @@ public enum DrivingCommand: Equatable, Sendable {
       return CGPoint(x: values[0].doubleValue, y: values[1].doubleValue)
     }
     let durationMs = (object["durationMs"] as? NSNumber)?.intValue
-
-    let command: DrivingCommand
-    switch verb {
-    case "click":
+    func pointerButton() throws -> Button {
       let name = object["button"] as? String ?? "left"
       guard let button = Button(rawValue: name) else {
         throw ParseError(description: "unknown button \"\(name)\"")
       }
+      return button
+    }
+    func modifierList() throws -> [Modifier] {
+      let names = object["modifiers"] as? [String] ?? []
+      return try names.map { raw in
+        guard let modifier = Modifier(rawValue: raw.lowercased()) else {
+          throw ParseError(description: "unknown modifier \"\(raw)\"")
+        }
+        return modifier
+      }
+    }
+
+    let command: DrivingCommand
+    switch verb {
+    case "click":
+      let button = try pointerButton()
       // A context menu is a window of its own, drawn over whatever the person
       // is using, and its tracking loop reads no key sent to the app's window,
       // so nothing sent here could close it. Not measured, so refused.
-      guard button == .left else {
+      switch button {
+      case .left: break
+      case .right:
         throw ParseError(
           description:
             "a right-click is not sent through the driving channel: the menu it opens would "
             + "stay over the person's work with no way to close it from here. Use "
             + "apple_desktop_show_menu on the element instead")
+      case .other:
+        throw ParseError(
+          description: "a click is sent with the left button only; \"other\" is a drag's")
       }
       command = .click(
         point: try point(), button: button,
         count: max(1, (object["count"] as? NSNumber)?.intValue ?? 1))
     case "drag":
-      command = .drag(from: try pair("from"), to: try pair("to"), durationMs: durationMs ?? 300)
+      let button = try pointerButton()
+      // A right-press opens a context menu as a right-click does, for the same
+      // reason refused.
+      guard button != .right else {
+        throw ParseError(
+          description:
+            "a right-button drag is not sent through the driving channel: the context menu a "
+            + "right-press can open would stay over the person's work with no way to close it "
+            + "from here")
+      }
+      var paced = false
+      if let raw = object["paced"] {
+        guard let value = raw as? Bool else {
+          throw ParseError(description: "paced is true or false")
+        }
+        paced = value
+      }
+      command = .drag(
+        from: try pair("from"), to: try pair("to"), durationMs: durationMs ?? 300,
+        button: button, modifiers: try modifierList(), paced: paced)
     case "hover":
-      command = .hover(point: try point(), durationMs: durationMs ?? 600)
+      command = .hover(
+        point: try point(), durationMs: durationMs ?? 600,
+        from: object["from"] == nil ? nil : try pair("from"))
     case "scroll":
-      command = .scroll(point: try point(), dx: number("dx") ?? 0, dy: number("dy") ?? 0)
+      let name = object["units"] as? String ?? "line"
+      guard let units = ScrollUnits(rawValue: name) else {
+        throw ParseError(description: "unknown units \"\(name)\", line or pixel")
+      }
+      command = .scroll(
+        point: try point(), dx: number("dx") ?? 0, dy: number("dy") ?? 0, units: units)
     case "type":
       guard let text = object["text"] as? String else {
         throw ParseError(description: "type needs text")
@@ -98,14 +165,7 @@ public enum DrivingCommand: Equatable, Sendable {
       guard let name = object["key"] as? String else {
         throw ParseError(description: "key needs key")
       }
-      let names = object["modifiers"] as? [String] ?? []
-      let modifiers = try names.map { raw in
-        guard let modifier = Modifier(rawValue: raw.lowercased()) else {
-          throw ParseError(description: "unknown modifier \"\(raw)\"")
-        }
-        return modifier
-      }
-      command = .key(name: name.lowercased(), modifiers: modifiers)
+      command = .key(name: name.lowercased(), modifiers: try modifierList())
     default:
       throw ParseError(description: "unknown verb \"\(verb)\"")
     }

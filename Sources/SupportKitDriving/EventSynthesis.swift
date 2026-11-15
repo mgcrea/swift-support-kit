@@ -31,12 +31,14 @@
         switch command {
         case .click(let point, let button, let count):
           try click(at: point, button: button, count: count, done: done)
-        case .drag(let from, let to, let durationMs):
-          try drag(from: from, to: to, steps: max(2, durationMs / 25), done: done)
-        case .hover(let point, let durationMs):
-          try hover(to: point, durationMs: durationMs, done: done)
-        case .scroll(let point, let dx, let dy):
-          try scroll(at: point, dx: dx, dy: dy, done: done)
+        case .drag(let from, let to, let durationMs, let button, let modifiers, let paced):
+          try drag(
+            from: from, to: to, durationMs: durationMs, button: button,
+            flags: PointerEvent.flags(modifiers), paced: paced, done: done)
+        case .hover(let point, let durationMs, let from):
+          try hover(to: point, from: from, durationMs: durationMs, done: done)
+        case .scroll(let point, let dx, let dy, let units):
+          try scroll(at: point, dx: dx, dy: dy, units: units, done: done)
         case .type(let text):
           try type(text, done: done)
         case .key(let name, let modifiers):
@@ -66,6 +68,12 @@
           description: "no window of this app at (\(Int(point.x)), \(Int(point.y)))")
       }
       return (window, window.convertPoint(fromScreen: cocoa))
+    }
+
+    /// A top-left global point in `window`'s coordinates, wherever it is.
+    private func local(_ point: CGPoint, in window: NSWindow) -> NSPoint {
+      let primary = NSScreen.screens.first?.frame.height ?? 0
+      return window.convertPoint(fromScreen: WindowPick.cocoa(point, primaryHeight: primary))
     }
 
     /// Where keys go: the window that would be key if the app were active.
@@ -107,6 +115,12 @@
     private func finishAfterQueued(
       _ done: @escaping Done, _ ack: @escaping @MainActor () -> Ack
     ) {
+      fence { [weak self] in self?.finish(done, ack) }
+    }
+
+    /// Queues a marker behind every event queued now, and calls `reached` when
+    /// the app's own loop takes it, so once it has taken them all.
+    private func fence(_ reached: @escaping @MainActor () -> Void) {
       if fenceMonitor == nil {
         fenceMonitor = NSEvent.addLocalMonitorForEvents(matching: .applicationDefined) {
           [weak self] event in
@@ -117,7 +131,7 @@
       }
       nextFence += 1
       let token = nextFence
-      fences[token] = { [weak self] in self?.finish(done, ack) }
+      fences[token] = reached
       guard
         let marker = NSEvent.otherEvent(
           with: .applicationDefined, location: .zero, modifierFlags: [], timestamp: 0,
@@ -136,83 +150,153 @@
 
     // ─── the pointer ─────────────────────────────────────────────────────────
 
-    private func mouse(
-      _ type: NSEvent.EventType, _ window: NSWindow, _ local: NSPoint, clicks: Int = 1,
-      flags: NSEvent.ModifierFlags = []
-    ) -> NSEvent {
-      NSEvent.mouseEvent(
-        with: type, location: local, modifierFlags: flags,
-        timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
-        context: nil, eventNumber: 0, clickCount: clicks,
-        pressure: type == .leftMouseUp || type == .rightMouseUp ? 0 : 1)!
-    }
-
     private func click(
       at point: CGPoint, button: DrivingCommand.Button, count: Int, done: @escaping Done
     ) throws {
       let (window, local) = try target(at: point)
       switch button {
       case .left:
+        let number = window.windowNumber
         for n in 1...count {
-          NSApp.postEvent(mouse(.leftMouseUp, window, local, clicks: n), atStart: false)
-          window.sendEvent(mouse(.leftMouseDown, window, local, clicks: n))
+          NSApp.postEvent(
+            PointerEvent.make(.up, at: local, windowNumber: number, clickCount: n), atStart: false)
+          window.sendEvent(PointerEvent.make(.down, at: local, windowNumber: number, clickCount: n))
         }
         finishAfterQueued(done) { self.ack(window, at: local) }
-      case .right:
+      case .right, .other:
         // Refused when parsed: see `DrivingCommand.parse`.
-        throw DrivingFailure(description: "a right-click is not sent through the driving channel")
+        throw DrivingFailure(
+          description: "a click is sent through the driving channel with the left button only")
       }
     }
 
-    /// The drags and the up are QUEUED before the down is sent, for the reason
-    /// a click queues its up: a control that tracks the mouse (a slider, a
-    /// split view) pulls them off the queue inside the down.
-    private func drag(from: CGPoint, to: CGPoint, steps: Int, done: @escaping Done) throws {
-      let (window, start) = try target(at: from)
-      let primary = NSScreen.screens.first?.frame.height ?? 0
-      let end = window.convertPoint(fromScreen: WindowPick.cocoa(to, primaryHeight: primary))
-      for step in 1...steps {
-        let t = CGFloat(step) / CGFloat(steps)
-        let p = NSPoint(x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t)
-        NSApp.postEvent(mouse(.leftMouseDragged, window, p), atStart: false)
+    /// Unless `paced`, the drags and the up are QUEUED before the down is sent,
+    /// for the reason a click queues its up: a control that tracks the mouse (a
+    /// slider, a split view) pulls them off the queue inside the down. The drag
+    /// then takes no time.
+    ///
+    /// Paced, step `k` of `n` is sent `k` × `durationMs` / `n` after the down,
+    /// and the up as soon as the last step is taken; each only once the app has
+    /// taken the one before off its queue, so a view that animates or throttles
+    /// between events sees them one at a time. They are still queued, one at a
+    /// time, so a control tracking the mouse inside its down takes them too.
+    /// Taken means the fence queued behind it was reached (the app's own loop)
+    /// or it is the current event (a control's tracking loop).
+    private func drag(
+      from: CGPoint, to: CGPoint, durationMs: Int, button: DrivingCommand.Button,
+      flags: NSEvent.ModifierFlags, paced: Bool, done: @escaping Done
+    ) throws {
+      guard button != .right else {
+        // Refused when parsed: see `DrivingCommand.parse`.
+        throw DrivingFailure(description: "a right-button drag is not sent through the channel")
       }
-      NSApp.postEvent(mouse(.leftMouseUp, window, end), atStart: false)
-      window.sendEvent(mouse(.leftMouseDown, window, start))
-      finishAfterQueued(done) { self.ack(window, at: end) }
+      let (window, start) = try target(at: from)
+      let end = local(to, in: window)
+      let number = window.windowNumber
+      let steps = max(2, durationMs / 25)
+      let path = PointerEvent.path(from: start, to: end, steps: steps)
+      /// Event `index`: a step, or the up after the last one. Made when it is
+      /// sent, so its timestamp says when.
+      func event(_ index: Int) -> NSEvent {
+        guard index < path.count else {
+          return PointerEvent.make(.up, button: button, at: end, windowNumber: number, flags: flags)
+        }
+        return PointerEvent.make(
+          .dragged, button: button, at: path[index].point, windowNumber: number,
+          delta: path[index].delta, flags: flags)
+      }
+      let count = path.count + 1
+      let down = PointerEvent.make(
+        .down, button: button, at: start, windowNumber: number, flags: flags)
+      guard paced else {
+        for index in 0..<count { NSApp.postEvent(event(index), atStart: false) }
+        window.sendEvent(down)
+        finishAfterQueued(done) { self.ack(window, at: end) }
+        return
+      }
+      // Scheduled before the down is sent: a control tracking the mouse does
+      // not return from it until the up, and the steps are sent from inside it.
+      let pacer = DragPacer(steps: steps, durationMs: durationMs)
+      let begin = ProcessInfo.processInfo.systemUptime
+      var unconfirmed = 0
+      var passed = Set<Int>()
+      func send(_ index: Int, after previous: NSEvent?) {
+        let wait = pacer.wait(
+          for: index, at: ProcessInfo.processInfo.systemUptime - begin,
+          previousTaken: previous.map { passed.contains(index - 1) || Self.isCurrent($0) } ?? true,
+          previousSent: previous.map { $0.timestamp - begin })
+        switch wait {
+        case .now(let notTaken):
+          if notTaken { unconfirmed += 1 }
+          let sent = event(index)
+          NSApp.postEvent(sent, atStart: false)
+          fence { passed.insert(index) }
+          if index + 1 < count {
+            send(index + 1, after: sent)
+          } else {
+            let note =
+              unconfirmed == 0
+              ? nil
+              : "paced: \(unconfirmed) of \(count) events were sent before the app had taken "
+                + "the one before, after waiting \(Int(DragPacer.patience * 1000)) ms for it"
+            finishAfterQueued(done) { self.ack(window, at: end, note: note) }
+          }
+        case .after(let seconds):
+          DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
+            MainActor.assumeIsolated { send(index, after: previous) }
+          }
+        }
+      }
+      DispatchQueue.main.async { MainActor.assumeIsolated { send(0, after: nil) } }
+      window.sendEvent(down)
+    }
+
+    /// Whether `event` is the one the app took last. A control tracking the
+    /// mouse takes the drags off the queue and leaves the fence behind them
+    /// there until its up, but it makes each drag it takes the current event.
+    /// The current event alone would not do for the app's own loop: measured,
+    /// an AppKit event it took after a step, stamped before it, replaced it.
+    private static func isCurrent(_ event: NSEvent) -> Bool {
+      guard let current = NSApp.currentEvent else { return false }
+      return current.type == event.type && current.timestamp == event.timestamp
     }
 
     /// Not yet measured: whether a `mouseMoved` delivered this way fires a
     /// tracking area or SwiftUI's `onContinuousHover`, which the window server
     /// normally drives from the real cursor.
-    private func hover(to point: CGPoint, durationMs: Int, done: @escaping Done) throws {
-      let (window, local) = try target(at: point)
+    private func hover(
+      to point: CGPoint, from: CGPoint?, durationMs: Int, done: @escaping Done
+    ) throws {
+      let (window, end) = try target(at: point)
       let steps = 24
+      let path = PointerEvent.path(
+        from: from.map { local($0, in: window) } ?? end, to: end, steps: steps)
       let gap = Double(max(0, durationMs)) / 1000 / Double(steps)
       func step(_ n: Int) {
-        window.sendEvent(mouse(.mouseMoved, window, local))
+        window.sendEvent(
+          PointerEvent.make(
+            .moved, at: path[n - 1].point, windowNumber: window.windowNumber,
+            delta: path[n - 1].delta))
         if n < steps {
           DispatchQueue.main.asyncAfter(deadline: .now() + gap) {
             MainActor.assumeIsolated { step(n + 1) }
           }
         } else {
-          finish(done) { self.ack(window, at: local, note: "hover is not yet measured") }
+          finish(done) { self.ack(window, at: end, note: "hover is not yet measured") }
         }
       }
       step(1)
     }
 
-    private func scroll(at point: CGPoint, dx: Double, dy: Double, done: @escaping Done) throws {
+    private func scroll(
+      at point: CGPoint, dx: Double, dy: Double, units: DrivingCommand.ScrollUnits,
+      done: @escaping Done
+    ) throws {
       let (window, local) = try target(at: point)
       guard
-        let cg = CGEvent(
-          scrollWheelEvent2Source: nil, units: .line, wheelCount: 2, wheel1: Int32(dy),
-          wheel2: Int32(dx), wheel3: 0)
+        let event = PointerEvent.scroll(
+          at: local, windowNumber: window.windowNumber, dx: dx, dy: dy, units: units)
       else { throw DrivingFailure(description: "could not make a scroll event") }
-      cg.location = point
-      cg.setIntegerValueField(.mouseEventWindowUnderMousePointer, value: Int64(window.windowNumber))
-      guard let event = NSEvent(cgEvent: cg) else {
-        throw DrivingFailure(description: "could not make a scroll event")
-      }
       window.sendEvent(event)
       finish(done) { self.ack(window, at: local, note: "scroll is not yet measured") }
     }
@@ -258,15 +342,7 @@
         throw DrivingFailure(description: "unknown key \"\(name)\"")
       }
       let window = try keyTarget()
-      var flags: NSEvent.ModifierFlags = []
-      for modifier in modifiers {
-        switch modifier {
-        case .command: flags.insert(.command)
-        case .shift: flags.insert(.shift)
-        case .option: flags.insert(.option)
-        case .control: flags.insert(.control)
-        }
-      }
+      let flags = PointerEvent.flags(modifiers)
       let characters = Self.characters(for: name)
       let shown = flags.contains(.shift) ? characters.uppercased() : characters
 
