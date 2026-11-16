@@ -28,8 +28,15 @@ jobs:
         run: swift --version
       - name: Build
         run: swift build -v
+      # Fails unless swift-testing printed its summary. On macOS 27 (measured locally,
+      # 2026-11-16), the one-process run exits 0 right after PointerDeliveryTests with no
+      # summary, so the later suites never run. On 2026-11-16, CI's macOS 26 runner printed
+      # it, so this guard matters from the day macos-latest moves to 27.
       - name: Test
-        run: swift test -v
+        run: |
+          set -o pipefail
+          swift test -v 2>&1 | tee test.log
+          grep -E '^✔ Test run with [0-9]+ tests? in [0-9]+ suites? passed' test.log
 
   # A gate rather than a suggestion: --strict turns every lint finding into a failure.
   # One runner only, and the newest one, because --strict on two swift-format versions fails
