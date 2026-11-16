@@ -83,7 +83,13 @@
       while let newline = buffer.firstIndex(of: 0x0A) {
         let line = String(decoding: buffer[buffer.startIndex..<newline], as: UTF8.self)
         buffer.removeSubrange(buffer.startIndex...newline)
-        if !line.trimmingCharacters(in: .whitespaces).isEmpty { handle(line) }
+        guard !line.trimmingCharacters(in: .whitespaces).isEmpty else { continue }
+        // A command answers what it raised itself (see `EventSynthesis.perform`); this is
+        // for anything else, since an exception out of this timer's callout would leave it
+        // firing, and it would never fire again.
+        if let raised = Raised.catching({ handle(line) }) {
+          NSLog("SupportKitDriving: a command line raised: \(raised)")
+        }
       }
     }
   }

@@ -30,7 +30,23 @@
 
     typealias Done = (Result<Ack, DrivingFailure>) -> Void
 
+    /// Answers `done` once. An `NSException` raised while the command is sent
+    /// answers it as an error (see `Raised`), and so does one a hover's later
+    /// move raises; whatever the command would have answered after that is
+    /// dropped.
     func perform(_ command: DrivingCommand, done: @escaping Done) {
+      var answered = false
+      let once: Done = { outcome in
+        guard !answered else { return }
+        answered = true
+        done(outcome)
+      }
+      if let raised = Raised.catching({ send(command, done: once) }) {
+        once(.failure(raised))
+      }
+    }
+
+    private func send(_ command: DrivingCommand, done: @escaping Done) {
       do {
         switch command {
         case .click(let point, let button, let count):
@@ -119,12 +135,19 @@
     /// main queue there sent its down and nothing after it, and a control tracking
     /// the mouse in that down held the button and the app (measured, in
     /// `PointerDeliveryTests`); a timer fires in all of those loops.
+    ///
+    /// An exception `block` raises is logged and goes no further: a block that
+    /// sends something into the app stops one itself, to answer it.
     static func onRunLoop(
       after seconds: TimeInterval = 0, _ block: @escaping @MainActor () -> Void
     ) {
       let timer = CFRunLoopTimerCreateWithHandler(
         nil, CFAbsoluteTimeGetCurrent() + max(0, seconds), 0, 0, 0
-      ) { _ in MainActor.assumeIsolated { block() } }
+      ) { _ in
+        MainActor.assumeIsolated {
+          if let raised = Raised.catching(block) { NSLog("SupportKitDriving: \(raised)") }
+        }
+      }
       CFRunLoopAddTimer(CFRunLoopGetMain(), timer, .commonModes)
     }
 
@@ -335,7 +358,10 @@
           .moved, at: path[n - 1].point, windowNumber: window.windowNumber,
           delta: path[n - 1].delta)
         if !made.kept { lost += 1 }
-        window.sendEvent(made.event)
+        // Sent from a timer, after `perform` has returned.
+        if let raised = Raised.catching({ window.sendEvent(made.event) }) {
+          return done(.failure(raised))
+        }
         if n < steps {
           Self.onRunLoop(after: gap) { step(n + 1) }
         } else {
@@ -390,9 +416,10 @@
     }
 
     /// A shortcut is matched against the main menu and its item's action sent
-    /// to this window's first responder by name. An app that is not active has
-    /// no key window, so `NSApp.sendAction(_:to: nil)`, which is what a menu
-    /// does with a key equivalent, would find no responder chain to walk.
+    /// to the responder `responder(for:from:item:)` finds from this window's
+    /// first responder. An app that is not active has no key window, so
+    /// `NSApp.sendAction(_:to: nil)`, which is what a menu does with a key
+    /// equivalent, would find no responder chain to walk.
     private func key(
       _ name: String, modifiers: [DrivingCommand.Modifier], done: @escaping Done
     ) throws {
@@ -410,8 +437,7 @@
         // nothing to act on (Undo with nothing to undo) stays a no.
         if let item = Self.menuItem(in: NSApp.mainMenu, key: characters, flags: flags),
           let action = item.action,
-          let target = NSApp.target(
-            forAction: action, to: item.target ?? window.firstResponder ?? window, from: item)
+          let target = Self.responder(for: action, from: window, item: item)
         {
           if !Self.isUsable(item, target: target) {
             finish(done) {
@@ -436,6 +462,31 @@
           keyEvent(type, window, characters: shown, ignoring: characters, code: code, flags: flags))
       }
       finish(done) { self.ack(window) }
+    }
+
+    /// Where AppKit would send `item`'s action if `window` were key: the item's
+    /// own target when it has one, else the first responder up the chain from
+    /// the window's first responder that implements the action (or names a
+    /// supplemental target for it, as a window controller names its document),
+    /// then the window's delegate, then what AppKit finds with no window at
+    /// all (the app, its delegate, the document controller).
+    ///
+    /// The first responder itself was the target until 1.25.0, and AppKit sends
+    /// an explicit target the action as it is: Cmd-Z with a text field focused
+    /// sent `undo:` to the field editor, which does not implement it, and it
+    /// raised (Maquette, 2026-11-16).
+    static func responder(for action: Selector, from window: NSWindow, item: NSMenuItem) -> Any? {
+      if let target = item.target { return NSApp.target(forAction: action, to: target, from: item) }
+      var next: NSResponder? = window.firstResponder ?? window
+      while let responder = next {
+        if responder.responds(to: action) { return responder }
+        if let supplemental = responder.supplementalTarget(forAction: action, sender: item) {
+          return supplemental
+        }
+        next = responder.nextResponder
+      }
+      if let delegate = window.delegate, delegate.responds(to: action) { return delegate }
+      return NSApp.target(forAction: action, to: nil, from: item)
     }
 
     /// Whether a matched item may run against `target`.

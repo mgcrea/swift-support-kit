@@ -64,7 +64,8 @@ public final class Driving {
     private let channel: DrivingChannel
     private let synthesis = EventSynthesis()
 
-    private init(channel: DrivingChannel) {
+    /// Not private, for the tests that drive a channel of their own.
+    init(channel: DrivingChannel) {
       self.channel = channel
       channel.start { [weak self] line in self?.handle(line) }
     }

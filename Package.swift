@@ -119,7 +119,17 @@ let package = Package(
     // No catalog: its error messages are English an app rewords through `describe`.
     .target(name: "SupportKitModels"),
     // No catalog: it draws nothing, and its errors are read by the agent driving it.
-    .target(name: "SupportKitDriving"),
+    .target(name: "SupportKitDriving", dependencies: ["SupportKitDrivingCatch"]),
+    // Not a product: the one thing the channel needs that Swift cannot do, stop an
+    // `NSException` raised while a command is performed, so that the command answers an
+    // error and the channel goes on (an exception out of its poll stopped it for good). An
+    // `@try` is Objective-C. DEBUG and macOS only, as the channel is, so a Release build of
+    // it is an empty object; `DEBUG` is defined here because the Swift targets' condition of
+    // that name does not reach C.
+    .target(
+      name: "SupportKitDrivingCatch",
+      cSettings: [.define("DEBUG", to: "1", .when(configuration: .debug))]
+    ),
     // No catalog: it draws nothing.
     .target(name: "SupportKitTestHost"),
     // A catalog: its purchase errors are shown to the user as they are.
