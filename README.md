@@ -68,7 +68,7 @@ anything in this list. A test asserts it.
 ## Install
 
 ```swift
-.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.25.0"))
+.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.25.1"))
 ```
 
 Ten products; the main ones are below, and `SupportKitMemory`, `SupportKitModels`,
