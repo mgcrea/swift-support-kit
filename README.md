@@ -628,8 +628,23 @@ driving = Driving.startIfRequested()
   window: one made at a screen point found no window, and was hit-tested at the screen point.
 - **The app hit-tests its own windows**, so a window covered by another app's still takes the
   click, and the app never becomes active.
-- **Shortcuts are matched against the main menu** and sent to the window's first responder by
-  name. An inactive app has no key window, and a key equivalent posted from outside is ignored.
+- **Shortcuts are matched against the main menu** and the item's action sent where AppKit
+  would send it if the window were key: up the responder chain from the window's first
+  responder to the first that implements it, then the window's delegate, the app and its
+  delegate. With a text field focused, Cmd-Z's `undo:` goes past the field editor to the
+  window. An inactive app has no key window, and a key equivalent posted from outside is
+  ignored.
+- **A command that raises answers an `error`** naming the exception and its reason, and the
+  channel goes on. Through 1.25.0 the exception went on up out of the channel's poll and the
+  channel answered nothing more.
+- **What reads the key window stays as an inactive app has it.** SwiftUI's `.commands` and
+  `focusedSceneValue` read the key window, so an item they enable (Maquette's View ▸ Show
+  Bodies) stays disabled through the channel and its shortcut does nothing; the main menu is
+  not revalidated either, so its titles (Edit ▸ Undo's action name) are stale. `makeKey()`
+  does not help: while the app is inactive it leaves the app with no key window (measured, in
+  a background SwiftUI app and an accessory one), and the channel never activates the app. A
+  shortcut's own item is validated against its target before it runs, which retitles it, and
+  the ack names that title.
 - **Measured, and not yet measured.** Keys, clicks on AppKit and SwiftUI buttons, click to
   focus and Select All were measured with Cupertino's `make channel-check`. The deltas, the
   middle button, the modifiers, the pacing (against a view, against a control tracking the
