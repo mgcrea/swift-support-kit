@@ -183,16 +183,17 @@ private struct ReleaseBody: View {
     let entry: ChangelogRelease.Entry?
   }
 
+  ///
+  /// Keyed by the section's position rather than its name: notes with no sections, the App
+  /// Store's, come as sections with no name, and two of them would share every id.
   private var rows: [Row] {
-    release.sections.flatMap { section in
+    release.sections.enumerated().flatMap { index, section in
       section.lead.enumerated().map {
         Row(
-          id: "\(section.name).lead.\($0.offset)", section: section.name, lead: $0.element,
-          entry: nil)
+          id: "\(index).lead.\($0.offset)", section: section.name, lead: $0.element, entry: nil)
       }
         + section.entries.map {
-          Row(
-            id: "\(section.name).entry.\($0.ordinal)", section: section.name, lead: nil, entry: $0)
+          Row(id: "\(index).entry.\($0.ordinal)", section: section.name, lead: nil, entry: $0)
         }
     }
   }
@@ -217,53 +218,30 @@ private struct ReleaseBody: View {
 /// `Fixed` as a second heading level inside that is three levels of hierarchy in
 /// a settings window. The badge says the same thing in the space the bullet
 /// already occupies.
+///
+/// A section with no name draws no badge: notes with no sections, such as an App
+/// Store listing's, would otherwise carry an empty capsule on every point.
 private struct EntryRow: View {
   let section: String
   let entry: ChangelogRelease.Entry
 
-  /// Whether the bold lead is a headline or just the start of a sentence.
-  ///
-  /// Both are written in the fleet's CHANGELOGs. Most entries open with a
-  /// complete sentence — "**Sessions, per account.**" — which reads well pulled
-  /// onto its own line. Others bold only the subject and run straight on, and
-  /// splitting that one puts a line break before a comma and strands the clause
-  /// that explains it, so it is not split. Sentence-final punctuation is the test
-  /// because it is the thing the author actually decided.
-  private var leadIsHeadline: Bool {
-    guard let headline = entry.headline, let last = headline.last else { return false }
-    return last == "." || last == "!" || last == "?" || last == ":"
-  }
-
-  /// The first paragraph, reassembled, for the case where it must stay whole.
-  ///
-  /// The generator strips the whitespace between the two, so the space has to be
-  /// put back — except before punctuation that never takes one.
-  private var flowingLead: String {
-    guard let headline = entry.headline else { return entry.body.first ?? "" }
-    guard let first = entry.body.first, let next = first.first else { return "**\(headline)**" }
-    let joiner = ",.;:!?)".contains(next) ? "" : " "
-    return "**\(headline)**\(joiner)\(first)"
-  }
-
-  private var trailingParagraphs: ArraySlice<String> {
-    leadIsHeadline || entry.headline == nil ? entry.body[...] : entry.body.dropFirst()
-  }
+  private var layout: EntryLayout { EntryLayout(entry) }
+  private var label: String { ReleaseSectionLabel.label(for: section) }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       HStack(alignment: .firstTextBaseline, spacing: 6) {
-        ReleaseBadge(ReleaseSectionLabel.label(for: section), tint: Self.tint(for: section))
-        if leadIsHeadline, let headline = entry.headline {
-          Text(ReleaseNotes.markdown(headline, .callout))
-            .font(.callout).bold()
-            .fixedSize(horizontal: false, vertical: true)
-        } else if entry.headline != nil {
-          Text(ReleaseNotes.markdown(flowingLead, .callout))
+        if !label.isEmpty {
+          ReleaseBadge(label, tint: Self.tint(for: section))
+        }
+        if let opening = layout.opening {
+          Text(ReleaseNotes.markdown(opening, .callout))
             .font(.callout)
+            .bold(layout.isHeadline)
             .fixedSize(horizontal: false, vertical: true)
         }
       }
-      ForEach(Array(trailingParagraphs.enumerated()), id: \.offset) { _, paragraph in
+      ForEach(Array(layout.details.enumerated()), id: \.offset) { _, paragraph in
         Text(ReleaseNotes.markdown(paragraph, .caption))
           .font(.caption)
           .foregroundStyle(.secondary)
@@ -284,6 +262,56 @@ private struct EntryRow: View {
     case "Security": .red
     default: .secondary
     }
+  }
+}
+
+/// How one bullet is drawn: the line beside its badge, and the grey paragraphs under it.
+struct EntryLayout: Equatable {
+  /// The line beside the badge, in the bullet's own type. Nil only for an entry with no
+  /// text at all.
+  let opening: String?
+  /// Whether `opening` is a headline, drawn bold.
+  let isHeadline: Bool
+  /// The paragraphs after it, in grey.
+  let details: [String]
+
+  init(_ entry: ChangelogRelease.Entry) {
+    if let headline = entry.headline {
+      // Whether the bold lead is a headline or just the start of a sentence.
+      //
+      // Both are written in the fleet's CHANGELOGs. Most entries open with a
+      // complete sentence — "**Sessions, per account.**" — which reads well pulled
+      // onto its own line. Others bold only the subject and run straight on, and
+      // splitting that one puts a line break before a comma and strands the clause
+      // that explains it, so it is not split. Sentence-final punctuation is the test
+      // because it is the thing the author actually decided.
+      if let last = headline.last, ".!?:".contains(last) {
+        opening = headline
+        isHeadline = true
+        details = entry.body
+      } else {
+        opening = Self.flowing(headline, into: entry.body.first)
+        isHeadline = false
+        details = Array(entry.body.dropFirst())
+      }
+    } else {
+      // No bold lead: the bullet's first paragraph is the bullet, not a detail of one.
+      // It used to be drawn in grey under an empty line, which is how every point of a
+      // store listing's notes would have looked.
+      opening = entry.body.first
+      isHeadline = false
+      details = Array(entry.body.dropFirst())
+    }
+  }
+
+  /// The first paragraph, reassembled, for a bold lead that runs straight on.
+  ///
+  /// The generator strips the whitespace between the two, so the space has to be
+  /// put back — except before punctuation that never takes one.
+  private static func flowing(_ headline: String, into first: String?) -> String {
+    guard let first, let next = first.first else { return "**\(headline)**" }
+    let joiner = ",.;:!?)".contains(next) ? "" : " "
+    return "**\(headline)**\(joiner)\(first)"
   }
 }
 
@@ -322,6 +350,8 @@ enum ReleaseSectionLabel {
     case "Removed": localized("removed")
     case "Fixed": localized("fixed")
     case "Security": localized("security")
+    // No section, as in notes that have none: no badge rather than an empty one.
+    case "": ""
     default: section.lowercased()
     }
   }

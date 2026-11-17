@@ -150,6 +150,68 @@ public struct ReleaseNotes: Sendable {
     self.isSuppressed = isSuppressed
   }
 
+  /// Notes written in more than one language: one list per language code, `"en"`, `"fr"`.
+  ///
+  /// Resolved once, here, to the language the app draws in, and every release falls back to
+  /// `sourceLanguage` on its own: a version nobody translated is still listed, in the language
+  /// it was written in, rather than missing. The source language's list is the one that
+  /// decides which releases there are, in which order and on which date, so a translation
+  /// cannot add a version or move one.
+  ///
+  /// Once, because an app's language does not change while it runs: the system relaunches it
+  /// when the user picks another in System Settings.
+  ///
+  /// - Parameters:
+  ///   - localizedReleases: newest first in each language, the same versions in each.
+  ///   - sourceLanguage: the language every version is written in first.
+  ///   - appLanguages: `Bundle.main.preferredLocalizations`, the languages the app resolved
+  ///     to. Not the system's preferences: an English-only app on a French Mac must not show
+  ///     French notes in an English window.
+  public init(
+    localizedReleases: [String: [ChangelogRelease]],
+    sourceLanguage: String = "en",
+    appLanguages: [String] = Bundle.main.preferredLocalizations,
+    unreleased: ChangelogRelease? = nil,
+    installedVersion: String = ReleaseNotes.bundleVersion,
+    showsUnreleased: Bool,
+    seenKey: String = "changelogSeenVersion",
+    defaultsSuite: String? = nil,
+    isSuppressed: @escaping @Sendable () -> Bool = { false }
+  ) {
+    self.init(
+      releases: Self.resolve(
+        localizedReleases, sourceLanguage: sourceLanguage, appLanguages: appLanguages),
+      unreleased: unreleased,
+      installedVersion: installedVersion,
+      showsUnreleased: showsUnreleased,
+      seenKey: seenKey,
+      defaultsSuite: defaultsSuite,
+      isSuppressed: isSuppressed)
+  }
+
+  /// The source language's releases, each one's sections replaced by its translation into
+  /// the app's language where there is one.
+  static func resolve(
+    _ localizedReleases: [String: [ChangelogRelease]], sourceLanguage: String,
+    appLanguages: [String]
+  ) -> [ChangelogRelease] {
+    let source = localizedReleases[sourceLanguage] ?? []
+    // Foundation's matching, the same the app's own language was chosen by, so a regional
+    // variant resolves the way the app's does: an app in `fr-CA` gets the notes' `fr`.
+    guard
+      let language = Bundle.preferredLocalizations(
+        from: Array(localizedReleases.keys), forPreferences: appLanguages
+      ).first,
+      language != sourceLanguage, let translated = localizedReleases[language]
+    else { return source }
+    let byVersion = Dictionary(
+      translated.map { ($0.version, $0.sections) }, uniquingKeysWith: { first, _ in first })
+    return source.map { release in
+      guard let sections = byVersion[release.version] else { return release }
+      return ChangelogRelease(version: release.version, date: release.date, sections: sections)
+    }
+  }
+
   /// `CFBundleShortVersionString` of the main bundle, or empty.
   public static var bundleVersion: String {
     Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""

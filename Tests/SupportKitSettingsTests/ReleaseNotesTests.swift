@@ -98,3 +98,109 @@ struct ReleaseNotesTests {
     #expect(ReleaseSectionLabel.label(for: "Performance") == "performance")
   }
 }
+
+// MARK: - More than one language
+
+private func entry(_ ordinal: Int, _ text: String) -> ChangelogRelease.Entry {
+  ChangelogRelease.Entry(ordinal: ordinal, headline: nil, body: [text])
+}
+
+private func notes(_ version: String, _ text: String, date: String = "2026-11-05")
+  -> ChangelogRelease
+{
+  ChangelogRelease(
+    version: version, date: date,
+    sections: [ChangelogRelease.Section(name: "", lead: [], entries: [entry(0, text)])])
+}
+
+private let bilingual: [String: [ChangelogRelease]] = [
+  "en": [notes("1.2.0", "Share a tree."), notes("1.1.0", "In French.")],
+  // 1.1.0 was never translated, and the French list dates 1.2.0 differently.
+  "fr": [notes("1.2.0", "Partagez un arbre.", date: "1999-01-01")],
+]
+
+private func firstText(_ release: ChangelogRelease) -> String? {
+  release.sections.first?.entries.first?.body.first
+}
+
+@Suite("Release notes in more than one language")
+struct LocalizedReleaseNotesTests {
+  @Test("The app's language is drawn where it was written")
+  func appLanguage() {
+    let releases = ReleaseNotes.resolve(bilingual, sourceLanguage: "en", appLanguages: ["fr"])
+    #expect(releases.map(\.version) == ["1.2.0", "1.1.0"])
+    #expect(firstText(releases[0]) == "Partagez un arbre.")
+  }
+
+  @Test("A regional variant of the app's language takes the notes' plain language")
+  func regionalVariant() {
+    let releases = ReleaseNotes.resolve(bilingual, sourceLanguage: "en", appLanguages: ["fr-CA"])
+    #expect(firstText(releases[0]) == "Partagez un arbre.")
+  }
+
+  @Test("A version nobody translated is listed in the source language")
+  func perReleaseFallback() {
+    let releases = ReleaseNotes.resolve(bilingual, sourceLanguage: "en", appLanguages: ["fr"])
+    #expect(firstText(releases[1]) == "In French.")
+  }
+
+  @Test("The source language decides the date")
+  func sourceDecidesTheDate() {
+    let releases = ReleaseNotes.resolve(bilingual, sourceLanguage: "en", appLanguages: ["fr"])
+    #expect(releases[0].date == "2026-11-05")
+  }
+
+  @Test("An English app shows English notes, and a language with none falls back to them")
+  func otherLanguages() {
+    for languages in [["en"], ["de"]] {
+      let releases = ReleaseNotes.resolve(
+        bilingual, sourceLanguage: "en", appLanguages: languages)
+      #expect(firstText(releases[0]) == "Share a tree.")
+    }
+  }
+
+  @Test("The multilingual init hands the badge the resolved releases")
+  func initResolves() {
+    let notes = ReleaseNotes(
+      localizedReleases: bilingual, appLanguages: ["fr"], installedVersion: "1.2.0",
+      showsUnreleased: false, defaultsSuite: "LocalizedReleaseNotesTests.\(UUID().uuidString)")
+    #expect(notes.releases.map(\.version) == ["1.2.0", "1.1.0"])
+    #expect(firstText(notes.releases[0]) == "Partagez un arbre.")
+  }
+}
+
+// MARK: - Entries
+
+@Suite("What's New entries")
+struct EntryLayoutTests {
+  @Test("A sentence in bold is a headline over its paragraphs")
+  func headline() {
+    let layout = EntryLayout(
+      .init(ordinal: 0, headline: "Sessions, per account.", body: ["Each one apart."]))
+    #expect(layout.opening == "Sessions, per account.")
+    #expect(layout.isHeadline)
+    #expect(layout.details == ["Each one apart."])
+  }
+
+  @Test("A bold subject runs on into its sentence")
+  func flowing() {
+    let layout = EntryLayout(
+      .init(ordinal: 0, headline: "Charts", body: [", now with stars.", "More."]))
+    #expect(layout.opening == "**Charts**, now with stars.")
+    #expect(!layout.isHeadline)
+    #expect(layout.details == ["More."])
+  }
+
+  @Test("With no bold lead, the first paragraph is the point itself, not a grey detail")
+  func noHeadline() {
+    let layout = EntryLayout(.init(ordinal: 0, headline: nil, body: ["Shared trees are marked."]))
+    #expect(layout.opening == "Shared trees are marked.")
+    #expect(layout.details.isEmpty)
+  }
+
+  @Test("A section with no name has no badge")
+  func unnamedSection() {
+    #expect(ReleaseSectionLabel.label(for: "").isEmpty)
+    #expect(!ReleaseSectionLabel.label(for: "Fixed").isEmpty)
+  }
+}
