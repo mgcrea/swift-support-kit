@@ -68,7 +68,7 @@ anything in this list. A test asserts it.
 ## Install
 
 ```swift
-.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.26.0"))
+.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.27.0"))
 ```
 
 Ten products; the main ones are below, and `SupportKitMemory`, `SupportKitModels`,
@@ -681,6 +681,25 @@ driving = Driving.startIfRequested()
   automatically, as SwiftUI command menus do not, the item's `isEnabled` decides. Otherwise the
   target is asked, as AppKit would ask it from the key window.
 - **macOS only.** On iOS, `startIfRequested()` returns nil.
+
+### A driven copy beside the person's
+
+A driven copy is usually a Debug build launched beside the person's own copy, by `path` with
+`channel: true`. The two share the bundle id, so they share the container, the preferences and
+the saved window state: the driven copy would reopen the person's windows and save its own over
+them. `DrivenLaunch` keeps that apart, and does nothing unless the launch asked for the channel:
+
+```swift
+// The App's init, before AppKit restores anything:
+DrivenLaunch.prepare()          // registers ApplePersistenceIgnoreState, for this process only
+
+// applicationWillFinishLaunching:
+DrivenLaunch.keepWindowsFromSaving()   // every window, after each pass of the event loop
+```
+
+Everything else a driven copy must keep apart (its documents, its database, a server's port) is
+the app's, and `DrivenLaunch.isRequestedAtLaunch` is what it asks. Cupertino's launch passes no
+other argument, so an app cannot be told to isolate itself: it has to decide from that flag.
 
 ## Hosted tests off the screen
 
