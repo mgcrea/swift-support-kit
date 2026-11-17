@@ -297,6 +297,28 @@ and is asked for once as the sheet or pane appears; `isLoadingProduct` shows pro
 place while it asks, and leaves Restore enabled. `isPending` draws the kit's note for a
 purchase waiting on Ask to Buy. `ProSettingsPane` takes the same four.
 
+### What's New
+
+`ReleaseNotes` is the app's generated `ChangelogRelease` list plus the record of which versions
+were read; `badge` goes on the pane's sidebar row and `WhatsNewSettingsPane(notes:)` draws it.
+Call `markSeenIfUnset()` at launch, before anything reads the badge.
+
+An app in more than one language hands over one list per language:
+
+```swift
+static let notes = ReleaseNotes(
+  localizedReleases: ["en": releasesEN, "fr": releasesFR],
+  showsUnreleased: false)
+```
+
+It resolves once, to `Bundle.main.preferredLocalizations` (the app's language, never the Mac's),
+and each version on its own falls back to `sourceLanguage` when nobody translated it. The source
+list decides which versions exist, their order and their dates.
+
+Notes with no sections, such as an App Store listing's paragraph and points, come as a section
+named `""`: it draws no badge, and an entry with no `headline` draws its first paragraph as the
+point itself rather than as grey detail.
+
 ## The Pro store
 
 `SupportKitStore`: the Pro unlock, one non-consumable, what the App Store says about it, and
