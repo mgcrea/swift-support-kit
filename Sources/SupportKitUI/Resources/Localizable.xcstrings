@@ -25,6 +25,18 @@
         }
       }
     },
+    "Dismiss": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fermer"
+          }
+        }
+      }
+    },
     "Report an Issue": {
       "extractionState": "manual",
       "generatesSymbol": false,
@@ -69,6 +81,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "Envoyer un commentaire…"
+          }
+        }
+      }
+    },
+    "Thanks for buying Pro. I read every message, and good ideas ship fast.": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Merci d’avoir acheté Pro. Je lis chaque message, et les bonnes idées sont vite intégrées."
+          }
+        }
+      }
+    },
+    "What should %@ do better?": {
+      "extractionState": "manual",
+      "generatesSymbol": false,
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Que devrait mieux faire %@ ?"
           }
         }
       }
