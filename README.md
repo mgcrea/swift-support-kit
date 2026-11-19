@@ -68,7 +68,7 @@ anything in this list. A test asserts it.
 ## Install
 
 ```swift
-.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.27.0"))
+.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.28.0"))
 ```
 
 Ten products; the main ones are below, and `SupportKitMemory`, `SupportKitModels`,
@@ -529,6 +529,40 @@ if prompt.recordMilestoneAndShouldAsk() { requestReview() }  // when an export s
 
 Asks at most once per app version. Apple throttles `requestReview` to roughly three prompts a
 year and may show nothing at all, so nothing here treats "asked" as "reviewed".
+
+## Asking Pro users for feedback
+
+The feedback form sits in the Help menu and in Settings, where only somebody already looking for
+it finds it, and the apps collect nothing, so there is no address to write to. `FeedbackPrompt`
+asks each Pro user once, in the app, what it should do better:
+
+```swift
+let feedback = FeedbackPrompt(keyPrefix: "silhouette")
+
+feedback.recordMilestone(isPro: store.isUnlocked)   // when an export succeeds
+if review.recordMilestoneAndShouldAsk() {
+  feedback.noteReviewAsked()                         // the rating ask wins this session
+  requestReview()
+}
+
+// where the card goes, with the app's own chrome (SupportKitUI)
+FeedbackPromptCard(app: .silhouette, prompt: feedback, isPro: store.isUnlocked)
+  .padding(12)
+  .background(.quaternary, in: .rect(cornerRadius: 10))
+```
+
+- **Only milestones reached as Pro count**, five by default, so the count starts at the purchase.
+  Somebody who bought today is asked once Pro has been useful a few times, not today.
+- **Never in a session where the rating ask fired.** The card stays due and shows on the next
+  launch.
+- **Once, ever.** It is a card the app places, not an alert: it waits until it is answered or
+  closed, and then never returns, update or not. There is no "remind me later".
+
+The card is no view at all while the prompt is not pending, so inside a stack put the chrome on
+the card and not on a container around it: it then draws nothing and takes no room. In a `List`
+section, put it behind `if prompt.isPending && isPro`, the two things it checks itself. Its
+button opens the web form with `kind=idea`; nothing is sent from the app. Keep one
+`FeedbackPrompt` per app: two instances share what is stored, not the session's rating ask.
 
 ## Memory budget
 
