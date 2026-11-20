@@ -5,6 +5,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@-Hilfe"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayuda de %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aiuto %@"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -17,6 +35,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@-Support"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soporte de %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supporto %@"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -29,6 +65,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schließen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerrar"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiudi"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -41,6 +95,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problem melden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informar de un problema"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segnala un problema"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -53,6 +125,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problem auf GitHub melden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informar de un problema en GitHub"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segnala un problema su GitHub"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -65,6 +155,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feedback senden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar comentarios"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invia feedback"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -77,6 +185,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feedback senden …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar comentarios…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invia feedback…"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -89,6 +215,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Danke, dass du Pro gekauft hast. Ich lese jede Nachricht, und gute Ideen landen schnell in der App."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gracias por comprar Pro. Leo todos los mensajes, y las buenas ideas llegan rápido."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grazie per aver acquistato Pro. Leggo ogni messaggio, e le buone idee arrivano presto."
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -101,6 +245,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was sollte %@ besser machen?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Qué debería hacer mejor %@?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cosa dovrebbe fare meglio %@?"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",

@@ -5,6 +5,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@-Hilfe"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayuda de %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aiuto %@"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -17,6 +35,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@-Support"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soporte de %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supporto %@"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -29,6 +65,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Debug-Build. Er hat eine eigene Bundle-ID und damit eigene Einstellungen und eigene gespeicherte Daten."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una compilación de depuración. Tiene su propio identificador de paquete y, por tanto, sus propios ajustes y datos guardados."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una build di debug. Ha un proprio identificatore di bundle, e quindi impostazioni e dati salvati propri."
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -41,6 +95,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Anmeldeobjekt merkt sich, wo die App lag, und diese Kopie liegt außerhalb eines Ordners „Programme“. Bewege sie dorthin, damit sie bei der Anmeldung geöffnet wird."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un ítem de inicio recuerda dónde estaba la app, y esta copia está fuera de una carpeta Aplicaciones. Muévela allí para abrirla al iniciar sesión."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un elemento di login ricorda dove si trovava l’app, e questa copia è fuori da una cartella Applicazioni. Spostala lì per aprirla al login."
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -53,6 +125,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein einmaliger Kauf. Kein Abo."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una compra única. Sin suscripción."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un acquisto una tantum. Nessun abbonamento."
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -65,6 +155,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erlaube sie unter „Anmeldeobjekte & Erweiterungen“, damit sie bei der Anmeldung geöffnet wird."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permítela en “Ítems de inicio y extensiones” para abrirla al iniciar sesión."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consentila in “Elementi login ed estensioni” per aprirla al login."
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -77,6 +185,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Immer kostenlos"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siempre gratis"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sempre gratis"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -89,6 +215,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fehler, Ideen und Fragen sind alle willkommen, und keine davon stört. Das Feedbackformular und die Issue-Vorlage kommen mit deiner Version, macOS, dem Mac-Modell und der Sprache bereits ausgefüllt, und du kannst alles lesen, bevor etwas gesendet wird."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los errores, las ideas y las preguntas son bienvenidos, y ninguno molesta. El formulario de comentarios y la plantilla de incidencia llegan con tu versión, macOS, el modelo de Mac y el idioma ya rellenados, y puedes leerlo todo antes de enviar nada."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bug, idee e domande sono tutti benvenuti, e nessuno disturba. Il modulo di feedback e il modello di segnalazione arrivano con la versione, macOS, il modello di Mac e la lingua già compilati, e puoi leggere tutto prima che venga inviato."
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -101,6 +245,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für %@ kaufen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comprar por %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acquista per %@"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -113,6 +275,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Kauf wird überprüft …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comprobando tu compra…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifica dell’acquisto…"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -125,6 +305,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version und Systemdetails für einen Fehlerbericht kopieren"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar la versión y los detalles del sistema para un informe de error"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia versione e dettagli di sistema per segnalare un bug"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -137,6 +335,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frühere Versionen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versiones anteriores"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versioni precedenti"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -149,6 +365,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles ist freigeschaltet. Danke, dass du %@ unterstützt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo está desbloqueado. Gracias por apoyar %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tutto è sbloccato. Grazie per il tuo sostegno a %@."
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -161,6 +395,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vollständiger Versionsverlauf"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Historial completo de versiones"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cronologia completa delle versioni"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -173,6 +425,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kennung"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Identificador"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Identificatore"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -185,6 +455,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enthalten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluido"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluso"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -197,6 +485,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In deinem Kauf enthalten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluido en tu compra"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluso nel tuo acquisto"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -209,6 +515,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bei Anmeldung öffnen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir al iniciar sesión"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri al login"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -221,6 +545,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modell"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modelo"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modello"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -233,6 +575,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neu"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuevo"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novità"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -245,6 +605,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Systemeinstellungen öffnen …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Ajustes del Sistema…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri Impostazioni di Sistema…"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -257,6 +635,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gekauft"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comprado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acquistato"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -269,6 +665,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ bewerten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valorar %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valuta %@"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -281,6 +695,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kauf wiederherstellen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurar compra"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ripristina acquisto"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -293,6 +725,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impostazioni"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -305,6 +755,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicio"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvio"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -317,6 +785,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistema"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistema"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -329,6 +815,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der App Store ist nicht erreichbar."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha podido conectar con el App Store."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile raggiungere l’App Store."
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -341,6 +845,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut versuchen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reintentar"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riprova"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -353,6 +875,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht verfügbar"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No disponible"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non disponibile"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -365,6 +905,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unveröffentlicht"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin publicar"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non pubblicata"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -377,6 +935,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versión"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versione"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -389,6 +965,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warten auf Genehmigung. Der Kauf wird abgeschlossen, sobald er genehmigt ist."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperando aprobación. La compra se completará en cuanto se apruebe."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In attesa di approvazione. L’acquisto verrà completato non appena sarà approvato."
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -401,6 +995,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was Pro freischaltet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qué desbloquea Pro"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cosa sblocca Pro"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -413,6 +1025,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hinzugefügt"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "añadido"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aggiunto"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -425,6 +1055,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "geändert"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "cambiado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "modificato"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -437,6 +1085,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "veraltet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "obsoleto"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "deprecato"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -449,6 +1115,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "behoben"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "corregido"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "corretto"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -461,6 +1145,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "installiert"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "instalada"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "installata"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -473,6 +1175,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS führt diese Kopie von einem temporären Ort aus, der beim nächsten Mal nicht mehr da ist. Bewege die App in deinen Ordner „Programme“ und öffne sie von dort, damit sie bei der Anmeldung geöffnet wird."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS está ejecutando esta copia desde una ubicación temporal que la próxima vez ya no existirá. Mueve la app a tu carpeta Aplicaciones y ábrela desde allí para que se abra al iniciar sesión."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS esegue questa copia da una posizione temporanea che la prossima volta non ci sarà più. Sposta l’app nella cartella Applicazioni e aprila da lì perché si apra al login."
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -485,6 +1205,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "neu"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nueva"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nuova"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -497,6 +1235,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "in keinem Build"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "en ninguna compilación"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "in nessuna build"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -509,6 +1265,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "entfernt"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "eliminado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "rimosso"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -521,6 +1295,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sicherheit"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "seguridad"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sicurezza"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -533,6 +1325,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standardfarbe wiederherstellen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurar el color predeterminado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ripristina il colore predefinito"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -545,6 +1355,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standardfarbe"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color predeterminado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Colore predefinito"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -557,6 +1385,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hex"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hex"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hex"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -569,6 +1415,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mehr …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altro…"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -581,6 +1445,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (Pro)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (Pro)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (Pro)"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -593,6 +1475,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PRO"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PRO"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PRO"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -605,6 +1505,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfordert Pro"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requiere Pro"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Richiede Pro"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -617,6 +1535,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht jetzt"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ahora no"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non ora"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -629,6 +1565,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für %@ freischalten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquear por %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sblocca per %@"
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
@@ -641,6 +1595,24 @@
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einmal gekauft: kein Abo, keine kostenpflichtigen Upgrades. Über die Familienfreigabe mit deiner Familie geteilt und auf jedem Gerät, das mit deinem Apple Account angemeldet ist."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comprado una vez: sin suscripción ni actualizaciones de pago. Compartido con tu familia mediante En familia, y en todos los dispositivos con tu Cuenta de Apple."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acquistato una volta: nessun abbonamento, nessun aggiornamento a pagamento. Condiviso con la tua famiglia tramite In famiglia, e su ogni dispositivo con il tuo Account Apple."
+          }
+        },
         "fr": {
           "stringUnit": {
             "state": "translated",
