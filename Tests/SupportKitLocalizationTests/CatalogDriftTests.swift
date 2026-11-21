@@ -71,16 +71,18 @@ struct CatalogDriftTests {
   /// A half-translated catalog is worse than an untranslated one: the host app
   /// then mixes the two languages in the same window, and the package is the
   /// part it cannot fix.
-  @Test("French is complete", arguments: CatalogScanner.Module.all)
-  func frenchIsComplete(module: CatalogScanner.Module) throws {
+  @Test(
+    "Every shipped language is complete",
+    arguments: CatalogScanner.Module.all, CatalogScanner.shippedLanguages)
+  func languageIsComplete(module: CatalogScanner.Module, language: String) throws {
     let untranslated = try CatalogScanner.catalogKeys(for: module)
-      .filter { !$0.value.contains("fr") }
+      .filter { !$0.value.contains(language) }
       .keys.sorted()
 
     #expect(
       untranslated.isEmpty,
       """
-      \(module.name) has \(untranslated.count) string(s) with no translated French value:
+      \(module.name) has \(untranslated.count) string(s) with no translated "\(language)" value:
       \(untranslated.map { "  • \($0)" }.joined(separator: "\n"))
       """
     )

@@ -46,12 +46,14 @@ struct CatalogResolutionTests {
   }
 
   /// English is the source language, so it needs no authored entries — but the
-  /// compiled `en` table still has to exist, because it is what an app in neither
-  /// language falls back to.
-  @Test("Both languages compile", arguments: CatalogScanner.Module.all)
-  func bothLanguagesCompile(module: CatalogScanner.Module) throws {
+  /// compiled `en` table still has to exist, because it is what an app in none of
+  /// the shipped languages falls back to.
+  @Test("Every shipped language compiles", arguments: CatalogScanner.Module.all)
+  func everyLanguageCompiles(module: CatalogScanner.Module) throws {
     let languages = try CompiledCatalog.compiledLanguages(for: module)
     #expect(languages.contains("en"), "\(module.name) compiled no English table")
-    #expect(languages.contains("fr"), "\(module.name) compiled no French table")
+    for language in CatalogScanner.shippedLanguages {
+      #expect(languages.contains(language), "\(module.name) compiled no \(language) table")
+    }
   }
 }

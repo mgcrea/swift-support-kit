@@ -68,7 +68,7 @@ anything in this list. A test asserts it.
 ## Install
 
 ```swift
-.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.28.0"))
+.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.29.0"))
 ```
 
 Ten products; the main ones are below, and `SupportKitMemory`, `SupportKitModels`,
@@ -800,10 +800,12 @@ control around it. See [Toolbar caption controls](#toolbar-caption-controls).
 
 ## Localization
 
-The package ships its own strings in English and French, one String Catalog per UI target.
+The package ships its own strings in English, French, German, Italian and Spanish, one String
+Catalog per UI target.
 Which language shows follows **the app's** language, not the Mac's: an English-only app on a
-French Mac stays English throughout, and a bilingual app gets French rows beside its own French
-screens.
+French Mac stays English throughout, and an app translated into one of those languages gets the
+package's rows in it beside its own screens. An app that ships a language the package lacks shows
+the package's rows in English inside its translated window.
 
 Two kinds of text, two catalogs:
 
@@ -815,12 +817,14 @@ Two kinds of text, two catalogs:
 Every lookup goes through `localized(_:)` rather than a bare `Text("…")`, because a literal inside
 a package resolves against `Bundle.main` and silently draws English. That hides the literal from
 Xcode's extractor, so `SupportKitLocalizationTests` does the extractor's job: every call site has
-an entry, every entry has a call site, French is complete, no literal reaches SwiftUI unwrapped,
+an entry, every entry has a call site, every shipped language is complete, no literal reaches
+SwiftUI unwrapped,
 and no entry generates a Swift symbol. That last one is not tidiness — Xcode 26 turns "Send
 Feedback" and "Send Feedback…" into the same symbol, which breaks the build of every app linking
 the module while `swift build` stays green.
 
-Adding a string means adding its French in the same commit.
+Adding a string means adding its French, German, Italian and Spanish in the same commit
+(`CatalogScanner.shippedLanguages`).
 
 ## Requirements
 

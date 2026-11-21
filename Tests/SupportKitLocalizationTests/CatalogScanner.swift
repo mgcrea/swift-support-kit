@@ -27,6 +27,11 @@ enum CatalogScanner {
     static let all: [Module] = [.ui, .settings, .menuBar, .store]
   }
 
+  /// Every language the package ships beside English. A language an app adds to its own
+  /// catalogs but the package lacks puts the package's rows in English inside a
+  /// translated window, so each one here must be complete in every catalog.
+  static let shippedLanguages = ["fr", "de", "it", "es"]
+
   /// `.../Tests/SupportKitLocalizationTests/CatalogScanner.swift` → `.../Sources`.
   private static var sourcesRoot: URL {
     URL(fileURLWithPath: #filePath)
