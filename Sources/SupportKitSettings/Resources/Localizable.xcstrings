@@ -1321,7 +1321,7 @@
         }
       }
     },
-    "Restore the default colour": {
+    "Restore the default color": {
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {
@@ -1351,7 +1351,7 @@
         }
       }
     },
-    "Default colour": {
+    "Default color": {
       "extractionState": "manual",
       "generatesSymbol": false,
       "localizations": {

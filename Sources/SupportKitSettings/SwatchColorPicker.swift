@@ -65,8 +65,8 @@ public struct SwatchColorPicker: View {
         Image(systemName: "arrow.uturn.backward")
       }
       .buttonStyle(.borderless)
-      .help(localized("Restore the default colour"))
-      .accessibilityLabel(localized("Restore the default colour"))
+      .help(localized("Restore the default color"))
+      .accessibilityLabel(localized("Restore the default color"))
       .opacity(isDefault ? 0 : 1)
       .disabled(isDefault)
 
@@ -245,12 +245,12 @@ private struct SwatchPopover: View {
     .buttonStyle(.plain)
     .help(
       isDefault
-        ? Text(localized("Default colour"))
+        ? Text(localized("Default color"))
         : Text(verbatim: shown.typed(withAlpha: supportsOpacity))
     )
     .accessibilityLabel(
       isDefault
-        ? Text(localized("Default colour"))
+        ? Text(localized("Default color"))
         : Text(verbatim: shown.typed(withAlpha: supportsOpacity)))
   }
 
