@@ -1,7 +1,7 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
-// Ten products, deliberately split.
+// Eleven products, deliberately split.
 //
 // `SupportKit` is Foundation-only, so it can be unit-tested without a host app
 // and imported from a non-UI module. `SupportKitUI` is the SwiftUI surface. An
@@ -48,6 +48,14 @@ import PackageDescription
 // should not pay for, and because it draws nothing: the sheet and the pane take values and
 // closures, never a store, so the two halves stay independent and an app can adopt either.
 //
+// `SupportKitSidebar` is what a grouped sidebar with drag and drop shares: the drop
+// highlight that lights a whole section rather than the row under the pointer, the outlines
+// it and a selected row draw, the switch that turns the sidebar table's own highlights off,
+// the group colour palette and the New Group sheet. Cadence, Valise and Carbone each carried a
+// copy, and the Mac sidebar's drag reporting (enter before leave, no drag session) was fixed in
+// one copy at a time. Its own product because only apps with groups draw it; each keeps its
+// group model, its sections and what a drop does, and hands these views values and closures.
+//
 // The platform floor follows the consuming apps, which are now all on macOS 26
 // and iOS 26 — checked target by target, including Cupertino's bridge helper at
 // macOS 14, which links no package product and so does not hold the floor down.
@@ -64,8 +72,8 @@ import PackageDescription
 // nobody.
 //
 // `defaultLocalization` is what gives `Bundle.module` a localization table at
-// all, and it names the language the source is written in. Each of the three UI
-// targets owns a `Resources/Localizable.xcstrings`, because a bare `Text("…")`
+// all, and it names the language the source is written in. Each UI target
+// owns a `Resources/Localizable.xcstrings`, because a bare `Text("…")`
 // inside a package resolves against `Bundle.main` — the host app's bundle — finds
 // no entry there, and draws the English key to a French user with no build error
 // and no crash. Two apps in the fleet are bilingual, and that is the reason one
@@ -88,6 +96,7 @@ let package = Package(
     .library(name: "SupportKitSettings", targets: ["SupportKitSettings"]),
     .library(name: "SupportKitMenuBar", targets: ["SupportKitMenuBar"]),
     .library(name: "SupportKitToolbar", targets: ["SupportKitToolbar"]),
+    .library(name: "SupportKitSidebar", targets: ["SupportKitSidebar"]),
     .library(name: "SupportKitMemory", targets: ["SupportKitMemory"]),
     .library(name: "SupportKitModels", targets: ["SupportKitModels"]),
     .library(name: "SupportKitStore", targets: ["SupportKitStore"]),
@@ -114,6 +123,11 @@ let package = Package(
     // No catalog: every word it draws is the app's, handed over as a key or as
     // data, so there is nothing for `SupportKitLocalizationTests` to hold.
     .target(name: "SupportKitToolbar"),
+    // A catalog: the group sheet's labels and the palette's colour names.
+    .target(
+      name: "SupportKitSidebar",
+      resources: [.process("Resources")]
+    ),
     // No catalog: it draws nothing.
     .target(name: "SupportKitMemory"),
     // No catalog: its error messages are English an app rewords through `describe`.
@@ -142,6 +156,7 @@ let package = Package(
     .testTarget(name: "SupportKitSettingsTests", dependencies: ["SupportKitSettings"]),
     .testTarget(name: "SupportKitMenuBarTests", dependencies: ["SupportKitMenuBar"]),
     .testTarget(name: "SupportKitToolbarTests", dependencies: ["SupportKitToolbar"]),
+    .testTarget(name: "SupportKitSidebarTests", dependencies: ["SupportKitSidebar"]),
     .testTarget(name: "SupportKitMemoryTests", dependencies: ["SupportKitMemory"]),
     .testTarget(name: "SupportKitModelsTests", dependencies: ["SupportKitModels"]),
     .testTarget(name: "SupportKitStoreTests", dependencies: ["SupportKitStore"]),

@@ -68,11 +68,12 @@ anything in this list. A test asserts it.
 ## Install
 
 ```swift
-.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.29.0"))
+.package(url: "https://github.com/mgcrea/swift-support-kit.git", .upToNextMinor(from: "1.30.0"))
 ```
 
-Ten products; the main ones are below, and `SupportKitMemory`, `SupportKitModels`,
-`SupportKitStore`, `SupportKitDriving` and `SupportKitTestHost` have their own sections. `SupportKit` is Foundation-only, so it unit-tests without a host app and imports
+Eleven products; the main ones are below, and `SupportKitMemory`, `SupportKitModels`,
+`SupportKitStore`, `SupportKitDriving`, `SupportKitTestHost` and `SupportKitSidebar` have their
+own sections. `SupportKit` is Foundation-only, so it unit-tests without a host app and imports
 from non-UI modules. `SupportKitUI` adds the SwiftUI surface. `SupportKitSettings` adds the
 settings scaffold, kept separate because it is the part that will churn. `SupportKitMenuBar`
 adds the menu bar panel, which is macOS-only. `SupportKitToolbar` adds the two-line toolbar
@@ -508,6 +509,65 @@ its own glass keeps the stacked label whole, and that is what `ToolbarCaptionMen
 A plain button style leaves a custom label bright in an inactive window while the system items
 beside it dim. The label steps its text down a level when its window is inactive or the control is
 disabled, so it dims with its neighbours.
+
+## Grouped sidebars
+
+`SupportKitSidebar` (1.30.0) is what a sidebar of groups with drag and drop shares: a dragged
+row lights the whole section it would land in, not the row under the pointer, and the rows draw
+their own selection and drop outlines in place of the table's. Each app keeps its group model,
+how it builds its sections and what a drop does; these take ids, colours and closures.
+
+```swift
+import SupportKitSidebar
+
+struct Sidebar: View {
+    @State private var highlight = DropHighlight<Section.Kind>()
+
+    var body: some View {
+        List(selection: $selection) {
+            ForEach(sections) { section in
+                Section {
+                    ForEach(section.items) { item in
+                        Row(item)
+                            .sectionDragSource(in: section.kind) { ItemReference(id: item.id) }
+                            .sectionDropTarget(
+                                section.kind, accepting: ItemReference.self, tint: section.tint,
+                                outline: .row(isFirst: item.id == section.items.first?.id,
+                                              isLast: item.id == section.items.last?.id)
+                            ) { references in move(references.map(\.id), to: section) }
+                    }
+                } header: {
+                    Header(section)
+                        .sectionDropTarget(
+                            section.kind, accepting: ItemReference.self, tint: section.tint,
+                            outline: .header(isCollapsed: false), isHeader: true
+                        ) { references in move(references.map(\.id), to: section) }
+                }
+            }
+        }
+        .environment(highlight)
+        .background(SidebarTableFeedback())   // macOS
+    }
+}
+```
+
+- **`DropHighlight<ID>`** is shared through the environment, by its `ID` type. A section lights at
+  once and goes dark 80 ms late: the Mac sidebar reports a drag leaving a row before it reports it
+  entering the next, and a section that went dark in between would blink at every row. The
+  section a drag started in never lights, since a drop there changes nothing. The Mac sidebar
+  reports no drag session either, so there a drag is over when the mouse button comes up. A list
+  dragged onto sidebar rows from elsewhere (Carbone's documents) uses it with row ids and never
+  calls `dragBegan`.
+- **`InternalDragReference`** is the payload: an id, under the app's own exported type conforming
+  to `public.data` only, readable by this process alone. The app still declares the type in its
+  Info.plist.
+- **`sectionDropOutline`** draws one target's stretch of the section's outline, for a target the
+  app wires itself (Valise's takes files from the Finder as well). **`sidebarSelection`** and
+  **`sidebarDropOutline`** draw a single row's; macOS only.
+- **`GroupPalette`** is the ten colour tokens groups store, their colours, their VoiceOver names,
+  and a `swatch` for a palette `Picker`, which otherwise draws its images as uncoloured templates.
+  **`GroupDetailsSheet`** is New Group and Edit Group over plain values, with an `extra` slot for
+  the app's own sections; **`GroupColorGrid`** and **`GroupSymbolGrid`** are its two grids.
 
 ## Rating prompts
 

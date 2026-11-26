@@ -23,8 +23,9 @@ enum CatalogScanner {
     static let settings = Module(name: "SupportKitSettings")
     static let menuBar = Module(name: "SupportKitMenuBar")
     static let store = Module(name: "SupportKitStore")
+    static let sidebar = Module(name: "SupportKitSidebar")
 
-    static let all: [Module] = [.ui, .settings, .menuBar, .store]
+    static let all: [Module] = [.ui, .settings, .menuBar, .store, .sidebar]
   }
 
   /// Every language the package ships beside English. A language an app adds to its own
