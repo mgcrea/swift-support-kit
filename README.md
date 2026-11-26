@@ -521,7 +521,7 @@ how it builds its sections and what a drop does; these take ids, colours and clo
 import SupportKitSidebar
 
 struct Sidebar: View {
-    @State private var highlight = DropHighlight<Section.Kind>()
+    @State private var highlight = DropHighlight<GroupSection.Kind>()
 
     var body: some View {
         List(selection: $selection) {
@@ -561,9 +561,10 @@ struct Sidebar: View {
 - **`InternalDragReference`** is the payload: an id, under the app's own exported type conforming
   to `public.data` only, readable by this process alone. The app still declares the type in its
   Info.plist.
-- **`sectionDropOutline`** draws one target's stretch of the section's outline, for a target the
-  app wires itself (Valise's takes files from the Finder as well). **`sidebarSelection`** and
-  **`sidebarDropOutline`** draw a single row's; macOS only.
+- **`sectionDropTarget`** takes any `Transferable`, so a section can accept more than the app's
+  own reference: Valise's takes files from the Finder too, through one enum of both.
+  **`sectionDropOutline`** is the outline alone, for a target wired some other way.
+  **`sidebarSelection`** and **`sidebarDropOutline`** draw a single row's; macOS only.
 - **`GroupPalette`** is the ten colour tokens groups store, their colours, their VoiceOver names,
   and a `swatch` for a palette `Picker`, which otherwise draws its images as uncoloured templates.
   **`GroupDetailsSheet`** is New Group and Edit Group over plain values, with an `extra` slot for
